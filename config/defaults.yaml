@@ -1,0 +1,4 @@
+# Default settings for every show. A show file (config/<SHOW>.yaml) may
+# override any key listed here, and only these keys.
+DEFAULT_RENDER_WIDTH: 1920
+DEFAULT_RENDER_HEIGHT: 1080
