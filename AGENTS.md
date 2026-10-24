@@ -22,3 +22,13 @@ Work in this repo is tracked against GitHub issues (`wdavidlewis/mise-stage`).
   reasonable short descriptive name, for example `fix-readme-typo`.
 - Push the branch to GitHub and open a pull request. Changes reach `main` only
   by merging that PR on GitHub.
+
+## After a merge
+
+- Switch to `main` and pull: `git switch main && git pull --prune`.
+- Delete the local branch. PRs are squash-merged, so `git branch -d` refuses;
+  first confirm the PR shows as merged (`gh pr view <n> --json state`), then
+  use `git branch -D <branch>`.
+- GitHub deletes the remote branch automatically on merge (the repo has
+  "Automatically delete head branches" on). If it is still there, delete it
+  with `git push origin --delete <branch>`.
