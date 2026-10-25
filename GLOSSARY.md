@@ -1,0 +1,45 @@
+# mise-stage Glossary
+
+mise-stage manages cameras, shots and renders for previs in Maya, across several shows. This glossary defines the project's domain language.
+
+## Shows and settings
+
+**Show**:
+A production with its own settings, identified by a show code.
+_Avoid_: Project, production (in code and docs)
+
+**Show code**:
+The short alphanumeric identifier of a show, given in the `SHOW` environment variable. It names the show's override file.
+_Avoid_: Show name, show ID
+
+**Setting**:
+A named value the tools read to decide how they behave, such as the render width. Each setting is an uppercase key in the config files.
+_Avoid_: Option, config value, parameter
+
+**Default setting**:
+A setting's value in `config/defaults.yaml`, used by every show unless that show overrides it.
+_Avoid_: Global setting, base setting
+
+**Show override**:
+A setting a show sets in its own file (`config/<SHOW>.yaml`) to replace the default. Keys a show omits keep their default values.
+_Avoid_: Show config, show settings file
+
+## Previs
+
+**Previs**:
+Previsualization: a rough, animated version of a scene made before final production, used to plan shots and cameras.
+_Avoid_: Previz, animatic (unless referring to a specific deliverable)
+
+**Shot**:
+A continuous piece of footage within a sequence, shot from a single camera.
+
+**Camera**:
+The Maya camera that frames a shot and is used to render it.
+
+**Render**:
+An image or image sequence produced from a camera at a set resolution.
+
+## Flagged ambiguities
+
+- "config" and "settings" were used interchangeably for the values and the module that reads them. Resolved: a single value is a **Setting**. The module is the config module; the words for the values are not interchangeable with it.
+- "show" was used for the production and for its file. Resolved: the production is a **Show**; its code is the **Show code**; its file is a **Show override** file.
