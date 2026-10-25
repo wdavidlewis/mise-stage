@@ -12,7 +12,7 @@ PYTHON_DIR = REPO_ROOT / "python"
 os.environ.pop("SHOW", None)
 sys.path.insert(0, str(PYTHON_DIR))
 
-from utils.config import ConfigError, _load_settings  # noqa: E402
+from mise_stage.config import ConfigError, _load_settings  # noqa: E402
 
 
 def write_config_dir(tmp, defaults, shows=None):
@@ -46,9 +46,9 @@ class LoadSettingsTests(unittest.TestCase):
 
     def test_unset_show_logs_warning(self):
         config_dir = write_config_dir(self.tmp, DEFAULTS)
-        with self.assertLogs("utils.config", level="WARNING"):
+        with self.assertLogs("mise_stage.config", level="WARNING"):
             _load_settings(None, config_dir)
-        with self.assertLogs("utils.config", level="WARNING"):
+        with self.assertLogs("mise_stage.config", level="WARNING"):
             _load_settings("", config_dir)
 
     def test_show_overrides_only_listed_keys(self):
@@ -98,7 +98,7 @@ class RealDefaultsTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
 
     def test_previs_file_root_defaults_to_empty_string(self):
-        with self.assertLogs("utils.config", level="WARNING"):
+        with self.assertLogs("mise_stage.config", level="WARNING"):
             settings = _load_settings(None, REPO_ROOT / "config")
         self.assertEqual(settings["PREVIS_FILE_ROOT"], "")
 
@@ -119,7 +119,7 @@ class ImportTests(unittest.TestCase):
         env["PYTHONPATH"] = str(PYTHON_DIR)
         if show is not None:
             env["SHOW"] = show
-        code = "from utils import config; print(config.DEFAULT_RENDER_WIDTH, config.DEFAULT_RENDER_HEIGHT)"
+        code = "from mise_stage import config; print(config.DEFAULT_RENDER_WIDTH, config.DEFAULT_RENDER_HEIGHT)"
         return subprocess.run(
             [sys.executable, "-c", code], env=env, capture_output=True, text=True
         )

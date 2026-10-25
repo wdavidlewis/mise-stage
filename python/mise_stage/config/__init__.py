@@ -13,7 +13,7 @@ import yaml
 
 log = logging.getLogger(__name__)
 
-# Repo root is three directories above this package directory (python/utils/config).
+# Repo root is three directories above this package directory (python/mise_stage/config).
 CONFIG_DIR = Path(__file__).resolve().parents[3] / "config"
 
 

@@ -108,7 +108,7 @@ Considered and not built:
 
 ### Key Technical Decisions
 
-- KTD1. **One package, standard library only: `python/utils/previs_files/`.** It sits beside `python/utils/config/`, uses `pathlib`, `dataclasses`, `json`, `os`, and `re`, and adds no dependency, so it runs in Maya's Python 3.11 and under the existing `unittest` setup. Governs R1–R13 (shape only).
+- KTD1. **One package, standard library only: `python/mise_stage/backends/previs_files/`.** It sits beside `python/mise_stage/config/`, uses `pathlib`, `dataclasses`, `json`, `os`, and `re`, and adds no dependency, so it runs in Maya's Python 3.11 and under the existing `unittest` setup. Governs R1–R13 (shape only).
 - KTD2. **A store object bound to a root and show code, returning plain frozen data objects.** The caller creates it once with the root and show code; listing and lookup methods return small immutable records (number, path, and for versions the scene-file list) instead of paths or dicts, so the Qt model layer gets typed values and no widgets or filesystem calls leak upward. Governs R5, R6.
 - KTD3. **A small error hierarchy under one base class:** not found, already exists, invalid name, number out of range, and unreadable metadata. Callers catch the base class for "anything wrong with the tree" or a specific one to react. Governs R3, R7, R8, R13.
 - KTD4. **Numbers are allocated by exclusive folder creation.** To allocate, find the next number from the listing, then create that folder without the "already exists is fine" option; if another process won the race, take the next candidate and retry. No lock file and no scan-then-write window. Governs R7, R8. Relies on the root being local or SMB (Dependencies / Assumptions).
@@ -135,13 +135,13 @@ flowchart TB
 
 ### Assumptions
 
-- Show codes are alphanumeric, matching the check in `python/utils/config/__init__.py`.
+- Show codes are alphanumeric, matching the check in `python/mise_stage/config/__init__.py`.
 - Parsing takes a bare scene name (no extension); callers pass a file's stem.
 
 ### Output Structure
 
 ```text
-python/utils/previs_files/
+python/mise_stage/backends/previs_files/
   __init__.py     public exports
   errors.py       error hierarchy
   naming.py       name building, parsing, number ranges
@@ -166,9 +166,9 @@ The per-unit `Files` lists are authoritative.
 - **Dependencies:** None.
 - **Files:**
   - `config/defaults.yaml` (modify)
-  - `python/utils/previs_files/__init__.py` (create)
-  - `python/utils/previs_files/errors.py` (create)
-  - `python/utils/previs_files/naming.py` (create)
+  - `python/mise_stage/backends/previs_files/__init__.py` (create)
+  - `python/mise_stage/backends/previs_files/errors.py` (create)
+  - `python/mise_stage/backends/previs_files/naming.py` (create)
   - `tests/test_previs_naming.py` (create)
   - `tests/test_config.py` (modify)
 - **Approach:**
@@ -176,7 +176,7 @@ The per-unit `Files` lists are authoritative.
   - Define the error hierarchy (KTD3).
   - In `naming.py`, hold the width and range constants (sequence 0–9999, action 0–999, version 1–999), folder-name builders (`0100`, `a007`, `v003`), a scene-name builder, and a parser that returns the four parts or raises the invalid-name or out-of-range error.
   - Validate the show code as alphanumeric when building a name.
-- **Patterns to follow:** The error class and module layout in `python/utils/config/__init__.py`; the `unittest` structure in `tests/test_config.py`.
+- **Patterns to follow:** The error class and module layout in `python/mise_stage/config/__init__.py`; the `unittest` structure in `tests/test_config.py`.
 - **Test scenarios:**
   - Covers AE6. Parse `abc_0100_a007_v012` returns show `abc`, sequence 100, action 7, version 12.
   - Covers AE6. Parse rejects `abc_0100_a007_v12` (two-digit version) and `abc_0100_a007_v000` (version 0).
@@ -193,8 +193,8 @@ The per-unit `Files` lists are authoritative.
 - **Requirements:** R2, R4, R5, R6, R13; AE1, AE3, AE7, and the listing half of AE8.
 - **Dependencies:** U1.
 - **Files:**
-  - `python/utils/previs_files/store.py` (create)
-  - `python/utils/previs_files/__init__.py` (modify)
+  - `python/mise_stage/backends/previs_files/store.py` (create)
+  - `python/mise_stage/backends/previs_files/__init__.py` (modify)
   - `tests/test_previs_store.py` (create)
 - **Approach:**
   - Create the store bound to a root and show code (KTD2), with immutable records for sequence, action, and version.
@@ -222,7 +222,7 @@ The per-unit `Files` lists are authoritative.
 - **Requirements:** R7, R8, R9, R13; AE2, AE8, AE9, AE10, AE1.
 - **Dependencies:** U1, U2.
 - **Files:**
-  - `python/utils/previs_files/store.py` (modify)
+  - `python/mise_stage/backends/previs_files/store.py` (modify)
   - `tests/test_previs_store.py` (modify)
 - **Approach:**
   - Explicit creation validates the number's range, creates the folder without tolerating an existing one, and maps the filesystem's "exists" error to the already-exists error. Creating the first sequence also creates `sequences` (KTD8); creating an action requires its sequence to exist.
@@ -258,9 +258,9 @@ The per-unit `Files` lists are authoritative.
 - **Requirements:** R10, R11; AE4, AE5.
 - **Dependencies:** U1, U2.
 - **Files:**
-  - `python/utils/previs_files/metadata.py` (create)
-  - `python/utils/previs_files/store.py` (modify)
-  - `python/utils/previs_files/__init__.py` (modify)
+  - `python/mise_stage/backends/previs_files/metadata.py` (create)
+  - `python/mise_stage/backends/previs_files/store.py` (modify)
+  - `python/mise_stage/backends/previs_files/__init__.py` (modify)
   - `tests/test_previs_metadata.py` (create)
 - **Approach:**
   - `metadata.py` reads and writes `meta.json` in a given folder (KTD5, KTD6). Reading a missing file gives an empty comment. A file that is not valid JSON, or whose shape is wrong, raises the unreadable-metadata error naming the file.
@@ -286,7 +286,7 @@ The per-unit `Files` lists are authoritative.
 - **Dependencies:** U1–U4.
 - **Files:** `README.md` (modify).
 - **Approach:**
-  - Update the layout block to list `python/utils/previs_files/`, replacing the "(the only code so far)" note on the config line.
+  - Update the layout block to list `python/mise_stage/backends/previs_files/`, replacing the "(the only code so far)" note on the config line.
   - Add a short section showing the folder tree, the scene-name pattern, a usage snippet that reads `PREVIS_FILE_ROOT` and the show code from config and passes them in, and the assumption that the root is local or SMB storage.
   - Add `PREVIS_FILE_ROOT` to the configuration section with the note that it is empty by default.
 - **Test expectation:** none -- documentation only.

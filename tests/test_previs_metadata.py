@@ -8,8 +8,8 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
-from utils.previs_files import MetadataError, NotFoundError, PrevisFileStore  # noqa: E402
-from utils.previs_files import metadata  # noqa: E402
+from mise_stage.backends.previs_files import MetadataError, NotFoundError, PrevisFileStore  # noqa: E402
+from mise_stage.backends.previs_files import metadata  # noqa: E402
 
 COMMENT = "Caméra déplacée — 新しい\nsecond line 🎬\r\nthird"
 

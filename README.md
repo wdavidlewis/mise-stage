@@ -4,18 +4,22 @@ Camera, shot and render management in Maya
 ## Layout
 
 ```text
-python/utils/config/         settings module
-python/utils/previs_files/   previs file tree API (sequences, actions, versions)
-config/                defaults.yaml plus one <SHOW>.yaml per show
-tests/                 unittest suite
+python/mise_stage/                       the one top-level package; put python/ on sys.path
+python/mise_stage/config/                settings module
+python/mise_stage/backends/              data and logic with no Maya or Qt imports
+python/mise_stage/backends/previs_files/ previs file tree API (sequences, actions, versions)
+config/                                  defaults.yaml plus one <SHOW>.yaml per show
+tests/                                   unittest suite
 ```
+
+UI code (model, view and controller per element) will live in `python/mise_stage/ui/`. Backends never import Maya or Qt, so they test outside Maya; only the UI layer talks to Maya.
 
 ## Configuration
 
 Settings are read as attributes of the config module:
 
 ```python
-from utils import config
+from mise_stage import config
 
 config.DEFAULT_RENDER_WIDTH   # 1920
 config.DEFAULT_RENDER_HEIGHT  # 1080
@@ -53,8 +57,8 @@ The `previs_files` package manages the folder tree of scenes. It needs no Maya o
 Sequences are normally numbered in hundreds, and gaps in sequence and action numbers are normal. Numbers never widen: going past 9999 sequences, or 999 actions or versions, is an error. A scene file is named `<showcode>_<sequence>_a<action>_v<version>.<ext>`.
 
 ```python
-from utils import config
-from utils.previs_files import PrevisFileStore
+from mise_stage import config
+from mise_stage.backends.previs_files import PrevisFileStore
 
 store = PrevisFileStore(config.PREVIS_FILE_ROOT, "abc")  # root must exist
 
