@@ -92,6 +92,27 @@ class LoadSettingsTests(unittest.TestCase):
         )
 
 
+class RealDefaultsTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_previs_file_root_defaults_to_empty_string(self):
+        with self.assertLogs("utils.config", level="WARNING"):
+            settings = _load_settings(None, REPO_ROOT / "config")
+        self.assertEqual(settings["PREVIS_FILE_ROOT"], "")
+
+    def test_show_can_override_previs_file_root(self):
+        real_defaults = (REPO_ROOT / "config" / "defaults.yaml").read_text(
+            encoding="utf-8"
+        )
+        config_dir = write_config_dir(
+            self._tmp.name, real_defaults, {"abc": "PREVIS_FILE_ROOT: //server/previs\n"}
+        )
+        settings = _load_settings("abc", config_dir)
+        self.assertEqual(settings["PREVIS_FILE_ROOT"], "//server/previs")
+
+
 class ImportTests(unittest.TestCase):
     def run_import(self, show):
         env = {k: v for k, v in os.environ.items() if k != "SHOW"}
