@@ -100,7 +100,6 @@ Deferred for later:
 
 Considered and not built:
 
-- Retrying a comment save when Windows reports the file is locked by another process. A locked sidecar file surfaces as an error to the caller, who can retry. Evidence that would change this: users hitting it in normal use.
 - Path-length handling for deep Windows paths. The tree is at most five levels below the root; a root short enough for Maya's own paths leaves ample room.
 
 ---
@@ -114,7 +113,7 @@ Considered and not built:
 - KTD3. **A small error hierarchy under one base class:** not found, already exists, invalid name, number out of range, and unreadable metadata. Callers catch the base class for "anything wrong with the tree" or a specific one to react. Governs R3, R7, R8, R13.
 - KTD4. **Numbers are allocated by exclusive folder creation.** To allocate, find the next number from the listing, then create that folder without the "already exists is fine" option; if another process won the race, take the next candidate and retry. No lock file and no scan-then-write window. Governs R7, R8. Relies on the root being local or SMB (Dependencies / Assumptions).
 - KTD5. **Comments live in `meta.json` inside the action or version folder,** as an object with a `comment` key, written as UTF-8 with non-ASCII characters kept as-is. Reads accept a UTF-8 byte-order mark, since Windows editors add one. Governs R10, R11, and leaves room for more fields without a format change.
-- KTD6. **Comment writes go to a temporary file in the same folder, then replace the real file in one step,** so a reader or a crash never sees half a file and the last writer wins. The temporary file is uniquely named per write, so two simultaneous writers never share one, and its name can never match a scene-file stem or the sidecar name. Governs R10.
+- KTD6. **Comment writes go to a temporary file in the same folder, then replace the real file in one step,** so a reader or a crash never sees half a file and the last writer wins. The temporary file is uniquely named per write, so two simultaneous writers never share one, and its name can never match a scene-file stem or the sidecar name. Windows refuses to open or replace `meta.json` while another writer is replacing it, which made simultaneous saves fail in testing, so opening and replacing it are retried briefly before giving up; this is what makes "last write wins" hold on Windows. Governs R10.
 - KTD7. **Scene files are the files in a version folder whose name minus its last extension equals the version's name.** `abc_0100_a007_v003.ma.bak` fails that test without a special case, and `meta.json` and the temporary file never match. Governs R5, R4.
 - KTD8. **The root itself must exist.** Only the `sequences` folder is created on demand. A mistyped root then fails with not-found instead of silently building a stray tree somewhere new. This fills a gap R13 leaves open (it covers a missing `sequences` folder, not a missing root) and changes no stated requirement. Governs R13.
 - KTD9. **`PREVIS_FILE_ROOT` defaults to the empty string,** written explicitly in `config/defaults.yaml` so an unset root fails loudly where the caller uses it. Governs R12. (session-settled: user-directed — chosen over a placeholder path: a placeholder invites silently writing scenes to the wrong place.)
