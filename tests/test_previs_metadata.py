@@ -1,4 +1,5 @@
 import json
+import stat
 import sys
 import tempfile
 import unittest
@@ -139,6 +140,25 @@ class MetadataFileTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 metadata.write_comment(self.folder, "hello")
         self.assertEqual(list(self.folder.iterdir()), [])
+
+    def test_shared_mode_keeps_an_existing_files_permission_bits(self):
+        self.path.write_text("{}", encoding="utf-8")
+        self.path.chmod(0o664)
+        self.assertEqual(
+            metadata._shared_mode(self.path, self.folder),
+            stat.S_IMODE(self.path.stat().st_mode),
+        )
+
+    def test_shared_mode_for_a_new_file_follows_the_folder_without_execute_bits(self):
+        expected = stat.S_IMODE(self.folder.stat().st_mode) & 0o666
+        self.assertEqual(metadata._shared_mode(self.path, self.folder), expected)
+
+    def test_a_comment_save_keeps_the_files_permission_bits(self):
+        metadata.write_comment(self.folder, "first")
+        self.path.chmod(0o664)
+        before = stat.S_IMODE(self.path.stat().st_mode)
+        metadata.write_comment(self.folder, "second")
+        self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), before)
 
     def test_non_string_comment_is_rejected(self):
         with self.assertRaises(TypeError):

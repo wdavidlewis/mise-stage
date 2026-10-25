@@ -5,6 +5,7 @@ keys are left alone so fields can be added later without a format change.
 """
 import json
 import os
+import stat
 import tempfile
 import time
 from pathlib import Path
@@ -49,6 +50,20 @@ def _load(path):
     return data
 
 
+def _shared_mode(path, folder):
+    """Return the permission bits the replacement file should carry.
+
+    mkstemp creates files readable and writable by their owner only, and
+    os.replace would pass that on to meta.json, locking out other artists on a
+    shared POSIX tree. An existing file keeps its own bits; a new one follows
+    its folder's, without execute bits.
+    """
+    try:
+        return stat.S_IMODE(os.stat(path).st_mode)
+    except FileNotFoundError:
+        return stat.S_IMODE(os.stat(folder).st_mode) & 0o666
+
+
 def read_comment(folder):
     """Return the comment stored in ``folder``, or "" when there is none."""
     path = Path(folder) / META_FILE_NAME
@@ -71,6 +86,10 @@ def write_comment(folder, comment):
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        try:
+            os.chmod(tmp, _shared_mode(path, folder))
+        except OSError:
+            pass  # a filesystem without permission bits; the save still works
         _retry_if_busy(lambda: os.replace(tmp, path))
     except BaseException:
         try:
