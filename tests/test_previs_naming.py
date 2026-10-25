@@ -88,6 +88,18 @@ class BuildSceneNameTests(unittest.TestCase):
             naming.scene_name("abc", 10000, 0, 1)
 
 
+class CheckExtensionTests(unittest.TestCase):
+    def test_accepts_extensions_with_or_without_a_dot(self):
+        self.assertEqual(naming.check_extension("ma"), "ma")
+        self.assertEqual(naming.check_extension(".mb"), "mb")
+
+    def test_rejects_anything_else(self):
+        for bad in ("", ".", "ma/../x", "a.b", "m a", "..ma", "ma\\x", None, 5):
+            with self.subTest(ext=bad):
+                with self.assertRaises(InvalidNameError):
+                    naming.check_extension(bad)
+
+
 class FolderNameTests(unittest.TestCase):
     def test_builds_folder_names(self):
         self.assertEqual(naming.sequence_dir_name(0), "0000")

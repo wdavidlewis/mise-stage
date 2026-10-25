@@ -234,6 +234,7 @@ class PrevisFileStore:
         ``ext`` is the scene file extension, with or without its leading dot.
         The scene file itself is not created.
         """
+        extension = naming.check_extension(ext)
         self._require_action(sequence, action)
         existing = [v.number for v in self.list_versions(sequence, action)]
 
@@ -248,7 +249,6 @@ class PrevisFileStore:
             make,
         )
         name = naming.scene_name(self.show, sequence, action, number)
-        extension = ext.lstrip(".")
         return self._version_path(sequence, action, number) / f"{name}.{extension}"
 
     # -- comments ---------------------------------------------------------

@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
@@ -113,6 +114,31 @@ class MetadataFileTests(unittest.TestCase):
             json.loads(self.path.read_text(encoding="utf-8")),
             {"comment": "new", "owner": "sam"},
         )
+
+    def test_replace_is_retried_when_windows_reports_a_sharing_violation(self):
+        real_replace = metadata.os.replace
+        attempts = []
+
+        def flaky_replace(src, dst):
+            attempts.append(src)
+            if len(attempts) <= 2:
+                raise PermissionError("in use")
+            real_replace(src, dst)
+
+        with mock.patch.object(metadata.os, "replace", flaky_replace), mock.patch.object(
+            metadata.time, "sleep"
+        ):
+            metadata.write_comment(self.folder, "hello")
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual(metadata.read_comment(self.folder), "hello")
+
+    def test_a_replace_that_never_succeeds_raises_and_leaves_no_temporary_file(self):
+        with mock.patch.object(
+            metadata.os, "replace", side_effect=PermissionError("in use")
+        ), mock.patch.object(metadata.time, "sleep"):
+            with self.assertRaises(PermissionError):
+                metadata.write_comment(self.folder, "hello")
+        self.assertEqual(list(self.folder.iterdir()), [])
 
     def test_non_string_comment_is_rejected(self):
         with self.assertRaises(TypeError):

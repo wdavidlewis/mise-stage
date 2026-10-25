@@ -16,6 +16,7 @@ VERSION_MIN, VERSION_MAX = 1, 999
 
 # [0-9], not \d, so that other scripts' digits never match.
 _SHOW_RE = re.compile(r"[A-Za-z0-9]+")
+_EXTENSION_RE = re.compile(r"\.?([A-Za-z0-9]+)")
 _SEQUENCE_DIR_RE = re.compile(r"([0-9]{4})")
 _ACTION_DIR_RE = re.compile(r"a([0-9]{3})")
 _VERSION_DIR_RE = re.compile(r"v([0-9]{3})")
@@ -57,6 +58,16 @@ def check_show(show):
     if not isinstance(show, str) or not _SHOW_RE.fullmatch(show):
         raise InvalidNameError(f"Show code must be alphanumeric, got {show!r}")
     return show
+
+
+def check_extension(ext):
+    """Return ``ext`` without its leading dot; it must be a plain alphanumeric extension."""
+    match = _EXTENSION_RE.fullmatch(ext) if isinstance(ext, str) else None
+    if not match:
+        raise InvalidNameError(
+            f"Extension must be letters and digits, like 'ma' or '.mb', got {ext!r}"
+        )
+    return match.group(1)
 
 
 def sequence_dir_name(sequence):

@@ -227,6 +227,7 @@ The per-unit `Files` lists are authoritative.
 - **Approach:**
   - Explicit creation validates the number's range, creates the folder without tolerating an existing one, and maps the filesystem's "exists" error to the already-exists error. Creating the first sequence also creates `sequences` (KTD8); creating an action requires its sequence to exist.
   - Next-free creation computes the candidate from the listing (next multiple of 100 above the highest sequence; highest plus 1 for actions and versions; when none exist, 0 for sequences and actions and 1 for versions), then creates it per KTD4, advancing the candidate by the same step if another process took it. Going past the maximum raises the out-of-range error.
+  - The caller's extension must be letters and digits, with an optional leading dot, so it can never carry path separators or be empty; anything else is the invalid-name error.
   - Version allocation uses the same loop, creates the version folder, and returns the scene path built from the folder, the scene name, and the caller's extension (R9). It does not create the scene file.
 - **Technical design:** (directional)
   ```text

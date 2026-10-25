@@ -3,11 +3,13 @@ import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
 from utils.previs_files import (  # noqa: E402
     AlreadyExistsError,
+    InvalidNameError,
     NotFoundError,
     NumberOutOfRangeError,
     PrevisFileStore,
@@ -213,6 +215,46 @@ class CreationTests(StoreTestCase):
         self.store.create_sequence(100)
         with self.assertRaises(NotFoundError):
             self.store.allocate_version(100, 7, "ma")
+
+    def test_allocation_rejects_bad_extensions_without_creating_a_folder(self):
+        self.store.create_sequence(100)
+        self.store.create_action(100, 7)
+        for bad in ("", ".", "ma/../x", None):
+            with self.subTest(ext=bad):
+                with self.assertRaises(InvalidNameError):
+                    self.store.allocate_version(100, 7, bad)
+        self.assertEqual(self.store.list_versions(100, 7), [])
+
+    def test_store_rejects_a_bad_show_code(self):
+        for bad in ("../x", "a b", ""):
+            with self.subTest(show=bad):
+                with self.assertRaises(InvalidNameError):
+                    PrevisFileStore(self.root, bad)
+
+    def _lose_first_race(self):
+        """Make the first folder creation fail as if another process won it."""
+        real_mkdir = PrevisFileStore._mkdir
+        calls = []
+
+        def mkdir(path):
+            calls.append(path)
+            if len(calls) == 1:
+                raise AlreadyExistsError(f"Already exists: {path}")
+            real_mkdir(path)
+
+        return mock.patch.object(PrevisFileStore, "_mkdir", staticmethod(mkdir))
+
+    def test_a_lost_race_moves_on_to_the_next_number(self):
+        self.store.create_sequence(100)
+        self.store.create_action(100, 7)
+        with self._lose_first_race():
+            self.assertEqual(
+                self.store.allocate_version(100, 7, "ma").parent.name, "v002"
+            )
+        with self._lose_first_race():
+            self.assertEqual(self.store.create_action(100).number, 9)
+        with self._lose_first_race():
+            self.assertEqual(self.store.create_sequence().number, 300)
 
     def test_simultaneous_allocations_get_distinct_versions(self):
         self.store.create_sequence(100)
