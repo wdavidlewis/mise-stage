@@ -55,7 +55,13 @@ def visible_changed():
 
 
 def save_state():
-    """Store the panel's display state, if the panel still exists."""
+    """Store the panel's display state, if the monitor's workspace panel still holds it.
+
+    A closed monitor can leave its model panel behind with no parent. That panel is never
+    read: asking it for its state while Maya quits crashed Maya.
+    """
+    if not camera_monitor.panel_in_control(model.PANEL_NAME, model.CONTROL_NAME):
+        return
     state = camera_monitor.capture_state(model.PANEL_NAME)
     if state:
         camera_monitor.save_pref(model.PREF_NAME, state)
