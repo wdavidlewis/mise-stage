@@ -3,6 +3,7 @@ from PySide6 import QtWidgets
 from shiboken6 import wrapInstance
 
 from mise_stage.dcc import workspace
+from mise_stage.ui import camera_monitor
 
 from . import model
 from .view import ShellView
@@ -34,9 +35,21 @@ def rebuild():
 
     _view = ShellView()
     _view.exit_requested.connect(exit_shell)
+    _view.camera_monitor_toggled.connect(set_camera_monitor_open)
+    _view.camera_menu_about_to_show.connect(
+        lambda view=_view: view.set_camera_monitor_checked(camera_monitor.is_open())
+    )
     layout = container.layout() or QtWidgets.QVBoxLayout(container)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.addWidget(_view)
+
+
+def set_camera_monitor_open(open_):
+    """Camera > Camera Monitor: open the monitor when checked, close it when unchecked."""
+    if open_:
+        camera_monitor.show()
+    else:
+        camera_monitor.hide()
 
 
 def exit_shell():

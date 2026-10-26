@@ -52,6 +52,9 @@ _Avoid_: Maya file, shot file
 **Camera**:
 The Maya camera that frames a shot and is used to render it.
 
+**Camera monitor**:
+A Maya panel that shows the view through a camera without letting the artist move it, with display settings of its own. For now it shows persp.
+
 **Render**:
 An image or image sequence produced from a camera at a set resolution.
 

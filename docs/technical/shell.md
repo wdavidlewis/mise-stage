@@ -1,6 +1,6 @@
 # Application shell
 
-The shell is the "Mise Stage" panel in Maya 2026+. It is a native Maya workspace panel, so it docks like the Attribute Editor: as a tab, split beside another panel, or floating as its own window. Maya remembers where it was left and reopens it there on the next launch. Today it holds a File menu with Exit and a blank body; later work adds tabs to it.
+The shell is the "Mise Stage" panel in Maya 2026+. It is a native Maya workspace panel, so it docks like the Attribute Editor: as a tab, split beside another panel, or floating as its own window. Maya remembers where it was left and reopens it there on the next launch. Today it holds a File menu with Exit, a Camera menu that opens and closes the [camera monitor](camera-monitor.md), and a blank body; later work adds tabs to it.
 
 In these docs the **shell** is the Qt widget (menu bar and body) and the **panel** is the Maya workspace container it sits in.
 

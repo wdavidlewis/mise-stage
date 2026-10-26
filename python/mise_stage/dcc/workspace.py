@@ -19,6 +19,29 @@ else:
 """
 
 
+_CALLBACK_TEMPLATE = """\
+try:
+    import importlib
+    _callback = getattr(importlib.import_module({module!r}), {function!r})
+except ImportError:
+    pass  # the restore script has already warned that the package is not on sys.path
+else:
+    _callback()
+"""
+
+
+def callback_script(function_path):
+    """Return the script Maya runs for a panel callback such as visible-change.
+
+    ``function_path`` is the dotted path of the function to call, e.g.
+    ``"mise_stage.ui.camera_monitor.controller.visible_changed"``. Maya can run the
+    callback before the package is importable, so a missing package is skipped quietly;
+    an error raised by the function itself is a bug and surfaces.
+    """
+    module, _, function = function_path.rpartition(".")
+    return _CALLBACK_TEMPLATE.format(module=module, function=function)
+
+
 def restore_script(rebuild_path):
     """Return the script Maya re-runs to rebuild a panel's contents.
 
@@ -51,6 +74,17 @@ def create(name, label, rebuild_path):
         floating=True,
         uiScript=restore_script(rebuild_path),
     )
+
+
+def set_visible_change(name, function_path):
+    """Call ``function_path`` whenever the panel is shown, hidden, docked, floated or closed.
+
+    The rebuild function calls this, because Maya fills a new or restored panel by
+    running its restore script, so attaching it there covers both.
+    """
+    import maya.cmds as cmds
+
+    cmds.workspaceControl(name, edit=True, visibleChangeCommand=callback_script(function_path))
 
 
 def raise_panel(name):

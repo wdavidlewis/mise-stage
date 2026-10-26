@@ -8,8 +8,9 @@ python/mise_stage/                       the one top-level package; put python/ 
 python/mise_stage/config/                settings module
 python/mise_stage/backends/              data and logic with no Maya or Qt imports
 python/mise_stage/backends/previs_files/ previs file tree API (sequences, actions, versions)
-python/mise_stage/dcc/                   thin Maya adapters (the dockable workspace panel)
+python/mise_stage/dcc/                   thin Maya adapters (the dockable workspace panel, the camera monitor panel)
 python/mise_stage/ui/shell/              the dockable "Mise Stage" panel (Qt)
+python/mise_stage/ui/camera_monitor/     the view-only camera monitor panel (Qt)
 config/                                  defaults.yaml plus one <SHOW>.yaml per show
 tests/                                   unittest suite
 ```
