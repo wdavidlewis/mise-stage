@@ -63,32 +63,24 @@ def exists(name):
     return bool(cmds.workspaceControl(name, query=True, exists=True))
 
 
-def create(name, label, rebuild_path, visible_change_path=None):
-    """Create the panel, floating, and have Maya fill it through the restore script.
-
-    ``visible_change_path`` is the dotted path of a function Maya calls whenever the
-    panel is shown, hidden, docked, floated or closed.
-    """
+def create(name, label, rebuild_path):
+    """Create the panel, floating, and have Maya fill it through the restore script."""
     import maya.cmds as cmds
 
-    options = {}
-    if visible_change_path:
-        options["visibleChangeCommand"] = callback_script(visible_change_path)
     cmds.workspaceControl(
         name,
         label=label,
         retain=False,
         floating=True,
         uiScript=restore_script(rebuild_path),
-        **options,
     )
 
 
 def set_visible_change(name, function_path):
-    """Attach the visible-change callback to an existing panel.
+    """Call ``function_path`` whenever the panel is shown, hidden, docked, floated or closed.
 
-    Maya rebuilds a restored panel by re-running its restore script, not ``create``,
-    so the rebuild function calls this to attach the callback again.
+    The rebuild function calls this, because Maya fills a new or restored panel by
+    running its restore script, so attaching it there covers both.
     """
     import maya.cmds as cmds
 
