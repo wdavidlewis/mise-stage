@@ -62,8 +62,8 @@ from mise_stage.backends.previs_files import PrevisFileStore
 
 store = PrevisFileStore(config.PREVIS_FILE_ROOT, "abc")  # root must exist
 
-store.create_sequence()                  # next multiple of 100; or create_sequence(300)
-store.create_action(100)                 # next free action; or create_action(100, 7)
+store.create_sequence(100)               # explicit number; create_sequence() picks and returns the next free one
+store.create_action(100, 7)              # explicit number; create_action(100) picks and returns the next free one
 path = store.allocate_version(100, 7, "ma")  # makes v001, returns the path to save to
 
 store.list_sequences()
