@@ -22,7 +22,7 @@ mise-stage manages cameras, shots and renders for previs in Maya. Read `GLOSSARY
 - Scene files are named `<showcode>_<sequence>_a<action>_v<version>.<ext>`, with 4-, 3- and 3-digit zero-padded numbers that never widen.
 - Tree problems raise the package's own errors (subclasses of `PrevisFilesError`).
 - Tests use `unittest` (`python -m unittest discover -s tests`) and must run outside Maya.
-- README examples must run as written, so check any code sample against the API.
+- Documentation examples (the README and `docs/technical/`) must run as written, so check any code sample against the API.
 
 ## Review focus
 
