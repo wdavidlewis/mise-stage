@@ -50,3 +50,10 @@ before the requirements are final, and ask the maintainer if it is not obvious:
 - GitHub deletes the remote branch automatically on merge (the repo has
   "Automatically delete head branches" on). If it is still there, delete it
   with `git push origin --delete <branch>`.
+
+## Documented solutions
+
+`docs/solutions/` holds documented solutions to past problems (Maya and Qt
+gotchas, shared-drive file writes), organized by category with YAML frontmatter
+(`module`, `tags`, `problem_type`). Relevant when implementing or debugging in
+documented areas.
