@@ -3,9 +3,6 @@
 Maya imports are deferred into the functions that need them, so
 ``restore_script`` can be imported and tested outside Maya.
 """
-import logging
-
-log = logging.getLogger(__name__)
 
 _RESTORE_TEMPLATE = """\
 try:
