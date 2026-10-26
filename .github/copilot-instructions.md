@@ -4,8 +4,12 @@ mise-stage manages cameras, shots and renders for previs in Maya. Read `GLOSSARY
 
 ## Layers
 
-- Code lives under `python/mise_stage/`. `backends/` is pure Python with no Maya or Qt imports; flag any `maya`, `PySide` or `PyQt` import there. UI code (a model, view and controller per element) goes in `ui/`.
-- Backends use only the standard library and must run in Maya's Python 3.11. Flag syntax or APIs newer than 3.11.
+- Code lives under `python/mise_stage/` in three layers, and imports only point downward:
+  - `backends/` is pure Python with no Maya or Qt imports. Flag any `maya`, `PySide` or `PyQt` import there.
+  - `dcc/` holds thin adapters that touch Maya (`maya.cmds`, scene open and save). It may import `maya` and `backends`, but never Qt. Flag any `PySide` or `PyQt` import there, and any logic that belongs in a backend (naming, validation, ordering) rather than in the adapter.
+  - `ui/` holds Qt code, a model, view and controller per element. It may use `backends` and `dcc`. Flag Qt code anywhere else, and Maya calls made directly from views.
+  - `backends/` must not import `dcc` or `ui`, and `dcc/` must not import `ui`.
+- All layers use only the standard library plus Maya and Qt where allowed, and must run in Maya's Python 3.11. Flag syntax or APIs newer than 3.11.
 - Settings come from `mise_stage.config`. Backends take paths and show codes as arguments instead of reading config themselves.
 
 ## Platform

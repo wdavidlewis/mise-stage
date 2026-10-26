@@ -12,7 +12,11 @@ config/                                  defaults.yaml plus one <SHOW>.yaml per 
 tests/                                   unittest suite
 ```
 
-UI code (model, view and controller per element) will live in `python/mise_stage/ui/`. Backends never import Maya or Qt, so they test outside Maya; only the UI layer talks to Maya.
+The code is split into layers, and imports only point downward:
+
+- `backends/` is pure Python and never imports Maya or Qt, so it tests outside Maya.
+- `dcc/` (not created yet) will hold thin adapters that touch Maya, such as camera queries and scene open and save. It may import `maya` and `backends`, never Qt, and it translates between Maya nodes and backend records.
+- `ui/` (not created yet) will hold the Qt code, with a model, view and controller per element. It may use both `backends` and `dcc`.
 
 ## Configuration
 
