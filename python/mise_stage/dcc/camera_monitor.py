@@ -57,6 +57,8 @@ def _hide_camera_controls(panel_name):
     view_menus = [m for m in cmds.lsUI(menus=True, long=True) if panel_name in m and m.split("|")[-1] == "View"]
     if view_menus:
         cmds.menu(view_menus[0], edit=True, visible=False)
+    else:
+        warn("The camera monitor could not find its View menu to hide, so it can be pointed at another camera.")
     cmds.layout(cmds.modelPanel(panel_name, query=True, barLayout=True), edit=True, visible=False)
 
 
