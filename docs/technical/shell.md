@@ -72,5 +72,5 @@ The code follows the layers in the [README](../../README.md):
 
 - `python/mise_stage/dcc/workspace.py` creates, raises and closes the panel with `maya.cmds`, and hands the panel's Qt container to the UI as a plain integer pointer. It imports no Qt and does not import `ui/`.
 - `python/mise_stage/ui/shell/` holds the Qt shell. `model.py` has the panel's name and title, `view.py` the menu bar and body, and `controller.py` the `show()` and `rebuild()` logic.
-- The panel is created with `retain=False` and a restore script. Maya runs that script when it restores the panel and each time the panel is reopened, and the script calls `mise_stage.ui.shell.rebuild()`. `rebuild()` adds the shell only if the panel does not already hold one.
-- The restore script catches only `ImportError`. An error raised inside `rebuild()` is a bug and is allowed to show.
+- The panel is created with `retain=False` and a restore script. Maya runs that script when it restores the panel and each time the panel is reopened, and the script calls `mise_stage.ui.shell.controller.rebuild()`. `rebuild()` adds the shell only if the panel does not already hold one.
+- The restore script catches only `ImportError`, and the import of the controller (and so of Qt) happens inside that guard. An error raised by `rebuild()` itself is a bug and is allowed to show.
