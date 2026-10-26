@@ -3,24 +3,8 @@ from PySide6 import QtCore, QtWidgets
 
 from . import model
 
-# Maya's 3D viewport widget class; the monitor's menus sit outside it and stay usable.
+# The class name of Maya's 3D viewport widget.
 _VIEWPORT_CLASS = "QmayaGLWidget"
-
-_BLOCKED = {
-    QtCore.QEvent.MouseButtonPress,
-    QtCore.QEvent.MouseButtonRelease,
-    QtCore.QEvent.MouseButtonDblClick,
-    QtCore.QEvent.MouseMove,
-    QtCore.QEvent.Wheel,
-    QtCore.QEvent.KeyPress,
-    QtCore.QEvent.KeyRelease,
-    QtCore.QEvent.ShortcutOverride,
-    QtCore.QEvent.ContextMenu,
-    QtCore.QEvent.TabletPress,
-    QtCore.QEvent.TabletRelease,
-    QtCore.QEvent.TabletMove,
-}
-
 
 _KEYS = {
     QtCore.QEvent.KeyPress,
@@ -28,18 +12,26 @@ _KEYS = {
     QtCore.QEvent.ShortcutOverride,
 }
 
+_BLOCKED = _KEYS | {
+    QtCore.QEvent.MouseButtonPress,
+    QtCore.QEvent.MouseButtonRelease,
+    QtCore.QEvent.MouseButtonDblClick,
+    QtCore.QEvent.MouseMove,
+    QtCore.QEvent.Wheel,
+    QtCore.QEvent.ContextMenu,
+    QtCore.QEvent.TabletPress,
+    QtCore.QEvent.TabletRelease,
+    QtCore.QEvent.TabletMove,
+}
+
 
 class _KeyBlocker(QtCore.QObject):
-    """Application-wide: swallows keys that Maya would act on for the panel under the pointer."""
-
     def eventFilter(self, watched, event):
         return event.type() in _KEYS
 
 
 class InputBlocker(QtCore.QObject):
-    """Swallows mouse, wheel, tablet and key input on the viewport; paint and resize pass through.
-
-    Maya runs a hotkey such as F on the panel under the pointer, but the key event goes to
+    """Maya runs a hotkey such as F on the panel under the pointer, but the key event goes to
     whichever widget has keyboard focus, so the viewport never sees it. While the pointer
     is over the viewport, keys are therefore swallowed for the whole application.
     """

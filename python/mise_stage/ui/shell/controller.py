@@ -36,7 +36,6 @@ def rebuild():
     _view = ShellView()
     _view.exit_requested.connect(exit_shell)
     _view.camera_monitor_toggled.connect(set_camera_monitor_open)
-    # The check mark is read from the monitor's real state each time the menu opens.
     _view.camera_menu_about_to_show.connect(
         lambda view=_view: view.set_camera_monitor_checked(camera_monitor.is_open())
     )

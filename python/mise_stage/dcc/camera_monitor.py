@@ -4,7 +4,6 @@ Maya imports are deferred into the functions that need them, so this module can 
 imported and tested outside Maya. Names (panel, preference) are passed in by the caller.
 """
 
-# The id of the quit-time script job, kept so repeated rebuilds register only one.
 _quit_job = None
 
 
@@ -59,14 +58,6 @@ def _hide_camera_controls(panel_name):
     if view_menus:
         cmds.menu(view_menus[0], edit=True, visible=False)
     cmds.layout(cmds.modelPanel(panel_name, query=True, barLayout=True), edit=True, visible=False)
-
-
-def panel_pointer(panel_name):
-    """Return the panel's Qt widget as an int pointer, or None if there is none."""
-    import maya.OpenMayaUI as omui
-
-    pointer = omui.MQtUtil.findControl(panel_name)
-    return int(pointer) if pointer else None
 
 
 def capture_state(panel_name):

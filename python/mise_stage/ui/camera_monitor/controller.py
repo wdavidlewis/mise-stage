@@ -1,4 +1,4 @@
-"""Opens, fills and closes the camera monitor panel. The only place the view meets Maya."""
+"""Opens, fills and closes the camera monitor panel."""
 from PySide6 import QtWidgets
 from shiboken6 import wrapInstance
 
@@ -21,7 +21,7 @@ def show():
 
 
 def hide():
-    """Close the panel. Maya keeps running."""
+    """Close the panel."""
     if is_open():
         workspace.close(model.CONTROL_NAME)
 
@@ -44,7 +44,7 @@ def rebuild():
 
 
 def _block_input():
-    pointer = camera_monitor.panel_pointer(model.PANEL_NAME)
+    pointer = workspace.container_pointer(model.PANEL_NAME)
     if pointer is None or view.block_input(wrapInstance(pointer, QtWidgets.QWidget)) == 0:
         camera_monitor.warn("The camera monitor could not block camera input, so it is not view-only.")
 
