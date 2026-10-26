@@ -53,6 +53,19 @@ for module in (
 mise_stage.ui.shell.show()
 ```
 
+## Behavior confirmed in Maya 2026
+
+Checked by hand when the shell was built:
+
+- The panel docks as a tab over the Attribute Editor and floats, and both positions survive a Maya restart.
+- File ▸ Exit closes the panel without quitting Maya, and `shell.show()` returns it to its last position.
+- A panel closed with File ▸ Exit is not rebuilt after a restart.
+- A second `shell.show()` while the panel is open brings it forward and does not create another.
+- With `python/` off the path at startup, the restored tab is empty and the Script Editor shows one warning, not a traceback. `shell.show()` fills it once the path is set.
+- A `QMainWindow` with a menu bar renders correctly inside the panel.
+
+Not checked: whether Maya keeps the old shell widget alive across a close and reopen. `rebuild()` therefore looks in the live panel for a shell and never relies on a stored reference.
+
 ## How it is built
 
 The code follows the layers in the [README](../../README.md):
