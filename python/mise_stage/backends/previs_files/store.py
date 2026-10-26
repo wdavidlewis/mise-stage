@@ -143,8 +143,13 @@ class PrevisFileStore:
 
     def latest_version(self, sequence, action):
         """Return the highest-numbered version, or None if there are none."""
-        versions = self.list_versions(sequence, action)
-        return versions[-1] if versions else None
+        action_path = self._require_action(sequence, action)
+        numbered = self._numbered_dirs(action_path, naming.parse_version_dir)
+        if not numbered:
+            return None
+        # Only the latest folder is opened; older versions need no directory scan.
+        number, path = numbered[-1]
+        return self._version(sequence, action, number, path)
 
     def _version(self, sequence, action, number, path):
         stem = naming.scene_name(self.show, sequence, action, number)
@@ -235,8 +240,11 @@ class PrevisFileStore:
         The scene file itself is not created.
         """
         extension = naming.check_extension(ext)
-        self._require_action(sequence, action)
-        existing = [v.number for v in self.list_versions(sequence, action)]
+        action_path = self._require_action(sequence, action)
+        existing = [
+            number
+            for number, _ in self._numbered_dirs(action_path, naming.parse_version_dir)
+        ]
 
         def make(n):
             self._mkdir(self._version_path(sequence, action, n))

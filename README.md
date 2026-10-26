@@ -12,7 +12,11 @@ config/                                  defaults.yaml plus one <SHOW>.yaml per 
 tests/                                   unittest suite
 ```
 
-UI code (model, view and controller per element) will live in `python/mise_stage/ui/`. Backends never import Maya or Qt, so they test outside Maya; only the UI layer talks to Maya.
+The code is split into layers, and imports only point downward:
+
+- `backends/` is pure Python and never imports Maya or Qt, so it tests outside Maya.
+- `dcc/` (not created yet) will hold thin adapters that touch Maya, such as camera queries and scene open and save. It may import `maya` and `backends`, never Qt, and it translates between Maya nodes and backend records.
+- `ui/` (not created yet) will hold the Qt code, with a model, view and controller per element. It may use both `backends` and `dcc`.
 
 ## Configuration
 
@@ -62,8 +66,8 @@ from mise_stage.backends.previs_files import PrevisFileStore
 
 store = PrevisFileStore(config.PREVIS_FILE_ROOT, "abc")  # root must exist
 
-store.create_sequence()                  # next multiple of 100; or create_sequence(300)
-store.create_action(100)                 # next free action; or create_action(100, 7)
+store.create_sequence(100)               # explicit number; create_sequence() picks and returns the next free one
+store.create_action(100, 7)              # explicit number; create_action(100) picks and returns the next free one
 path = store.allocate_version(100, 7, "ma")  # makes v001, returns the path to save to
 
 store.list_sequences()

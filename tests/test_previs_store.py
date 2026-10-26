@@ -114,6 +114,15 @@ class ListingTests(StoreTestCase):
         self.version_dir(version=2)
         self.assertEqual(self.store.latest_version(100, 7).number, 2)
 
+    def test_latest_version_scans_only_the_latest_folder(self):
+        for number in range(1, 6):
+            self.version_dir(version=number)
+        with mock.patch.object(
+            PrevisFileStore, "_version", autospec=True, side_effect=PrevisFileStore._version
+        ) as version:
+            self.assertEqual(self.store.latest_version(100, 7).number, 5)
+        self.assertEqual(version.call_count, 1)
+
     def test_latest_version_is_none_without_versions(self):
         make_dirs(self.root, "sequences", "0100", "a007")
         self.assertIsNone(self.store.latest_version(100, 7))
@@ -196,6 +205,15 @@ class CreationTests(StoreTestCase):
         self.assertEqual(
             self.store.allocate_version(100, 7, "mb").name, "abc_0100_a007_v002.mb"
         )
+
+    def test_allocation_does_not_scan_existing_version_folders(self):
+        for number in range(1, 6):
+            self.version_dir(version=number)
+        with mock.patch.object(PrevisFileStore, "_version", autospec=True) as version:
+            self.assertEqual(
+                self.store.allocate_version(100, 7, "ma").parent.name, "v006"
+            )
+        version.assert_not_called()
 
     def test_allocation_skips_gaps(self):
         self.version_dir(version=1)
