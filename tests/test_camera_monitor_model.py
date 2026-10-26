@@ -1,3 +1,4 @@
+import ast
 import sys
 import unittest
 from pathlib import Path
@@ -22,6 +23,16 @@ class ModelTests(unittest.TestCase):
     def test_callback_paths_name_controller_functions(self):
         self.assertEqual(model.VISIBLE_CHANGE_PATH, "mise_stage.ui.camera_monitor.controller.visible_changed")
         self.assertEqual(model.SAVE_STATE_PATH, "mise_stage.ui.camera_monitor.controller.save_state")
+
+    def test_callback_paths_name_functions_that_exist_in_the_controller(self):
+        # Maya calls these by name, so a rename would pass CI and only fail inside Maya.
+        controller = REPO_ROOT / "python" / "mise_stage" / "ui" / "camera_monitor" / "controller.py"
+        defined = {node.name for node in ast.parse(controller.read_text(encoding="utf-8")).body if isinstance(node, ast.FunctionDef)}
+
+        for path in (model.REBUILD_PATH, model.VISIBLE_CHANGE_PATH, model.SAVE_STATE_PATH):
+            module, _, function = path.rpartition(".")
+            self.assertEqual(module, "mise_stage.ui.camera_monitor.controller")
+            self.assertIn(function, defined, path)
 
     def test_monitor_looks_through_persp(self):
         self.assertEqual(model.CAMERA, "persp")

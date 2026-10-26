@@ -31,16 +31,27 @@ def rebuild():
 
     Maya runs it when the panel is created and again when it restores the panel, so it
     only builds a panel the workspace panel does not already hold and always re-attaches
-    the callbacks.
+    the callbacks. The saved look is restored last, so a look that fails to apply cannot
+    leave the monitor interactive.
     """
-    if not camera_monitor.panel_in_control(model.PANEL_NAME, model.CONTROL_NAME):
+    built = not camera_monitor.panel_in_control(model.PANEL_NAME, model.CONTROL_NAME)
+    if built:
         camera_monitor.build_panel(model.PANEL_NAME, model.TITLE, model.CAMERA)
-        saved = camera_monitor.load_pref(model.PREF_NAME)
-        if saved:
-            camera_monitor.apply_state(model.PANEL_NAME, saved)
     workspace.set_visible_change(model.CONTROL_NAME, model.VISIBLE_CHANGE_PATH)
     camera_monitor.register_quit_job(workspace.callback_script(model.SAVE_STATE_PATH))
     _block_input()
+    if built:
+        _restore_state()
+
+
+def _restore_state():
+    saved = camera_monitor.load_pref(model.PREF_NAME)
+    if not saved:
+        return
+    try:
+        camera_monitor.apply_state(model.PANEL_NAME, saved)
+    except RuntimeError as error:
+        camera_monitor.warn("The camera monitor could not restore its saved look (%s); using the default look." % error)
 
 
 def _block_input():
