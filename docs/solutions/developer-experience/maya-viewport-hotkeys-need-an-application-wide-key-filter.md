@@ -68,4 +68,4 @@ Confirming it: select an object, park the shared camera away from it, hover the 
 
 - `docs/solutions/developer-experience/maya-model-panel-outlives-closed-workspace-panel.md`: lifecycle gotchas for the same panel.
 - `docs/technical/camera-monitor.md`: the monitor's view-only behavior as shipped.
-- #22: the camera monitor work this came from. The fix is on branch `22-camera-monitor`; the pull request is not open yet.
+- #22: the camera monitor work this came from. The fix is in PR #23.

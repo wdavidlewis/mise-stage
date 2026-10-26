@@ -97,6 +97,7 @@ Checked by hand when the monitor was built:
 
 - The Maya ViewCube (the front, right, top cube) sometimes appears in the monitor after you close it from the Camera menu and reopen it. It is not part of the saved display state and Maya has no per-panel switch for it that was found. It cannot be clicked, because the monitor ignores input, so it is cosmetic.
 - Closing a workspace panel destroys it, but its model panel can survive with no parent. The monitor treats a model panel as built only when it sits inside the monitor's own workspace panel, and rebuilds otherwise. It also never reads such a left-behind panel: the quit-time save did, with the monitor closed, and Maya crashed while quitting.
+- Input is blocked once, when the panel is built, on the viewports found then. After a Maya restart the viewport was found on the first try, so there is no retry. If it is ever missing, the monitor warns in the Script Editor that it is not view-only. Decided in the review of PR #23.
 
 ## How it is built
 

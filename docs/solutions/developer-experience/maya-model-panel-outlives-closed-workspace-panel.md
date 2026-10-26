@@ -74,4 +74,4 @@ cmds.modelPanel(panel_name, label=label, menuBarVisible=True)
 
 - `docs/technical/camera-monitor.md`: how the monitor is built and restored, and its known quirks.
 - `docs/solutions/developer-experience/headless-maya-qt-smoke-tests-with-mayapy.md`: what the headless smoke tests can and cannot cover for these panels.
-- #22: the camera monitor work this came from. The fixes are on branch `22-camera-monitor`; the pull request is not open yet.
+- #22: the camera monitor work this came from. The fixes are in PR #23.
