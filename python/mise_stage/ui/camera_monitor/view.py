@@ -22,11 +22,39 @@ _BLOCKED = {
 }
 
 
-class InputBlocker(QtCore.QObject):
-    """Swallows mouse, wheel, tablet and key input; paint and resize pass through."""
+_KEYS = {
+    QtCore.QEvent.KeyPress,
+    QtCore.QEvent.KeyRelease,
+    QtCore.QEvent.ShortcutOverride,
+}
+
+
+class _KeyBlocker(QtCore.QObject):
+    """Application-wide: swallows keys that Maya would act on for the panel under the pointer."""
 
     def eventFilter(self, watched, event):
-        return event.type() in _BLOCKED
+        return event.type() in _KEYS
+
+
+class InputBlocker(QtCore.QObject):
+    """Swallows mouse, wheel, tablet and key input on the viewport; paint and resize pass through.
+
+    Maya runs a hotkey such as F on the panel under the pointer, but the key event goes to
+    whichever widget has keyboard focus, so the viewport never sees it. While the pointer
+    is over the viewport, keys are therefore swallowed for the whole application.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._keys = _KeyBlocker(self)
+
+    def eventFilter(self, watched, event):
+        kind = event.type()
+        if kind == QtCore.QEvent.Enter:
+            QtWidgets.QApplication.instance().installEventFilter(self._keys)
+        elif kind == QtCore.QEvent.Leave:
+            QtWidgets.QApplication.instance().removeEventFilter(self._keys)
+        return kind in _BLOCKED
 
 
 def block_input(panel):
