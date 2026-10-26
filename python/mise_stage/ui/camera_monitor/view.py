@@ -33,7 +33,8 @@ class _KeyBlocker(QtCore.QObject):
 class InputBlocker(QtCore.QObject):
     """Maya runs a hotkey such as F on the panel under the pointer, but the key event goes to
     whichever widget has keyboard focus, so the viewport never sees it. While the pointer
-    is over the viewport, keys are therefore swallowed for the whole application.
+    is over the viewport, keys are therefore swallowed for the whole application. A viewport
+    that is hidden under the pointer gets no Leave, so Hide also lifts the filter.
     """
 
     def __init__(self, parent=None):
@@ -44,7 +45,7 @@ class InputBlocker(QtCore.QObject):
         kind = event.type()
         if kind == QtCore.QEvent.Enter:
             QtWidgets.QApplication.instance().installEventFilter(self._keys)
-        elif kind == QtCore.QEvent.Leave:
+        elif kind in (QtCore.QEvent.Leave, QtCore.QEvent.Hide):
             QtWidgets.QApplication.instance().removeEventFilter(self._keys)
         return kind in _BLOCKED
 
