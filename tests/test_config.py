@@ -12,7 +12,7 @@ PYTHON_DIR = REPO_ROOT / "python"
 os.environ.pop("SHOW", None)
 sys.path.insert(0, str(PYTHON_DIR))
 
-from utils.config import ConfigError, _load_settings  # noqa: E402
+from mise_stage.config import ConfigError, _load_settings  # noqa: E402
 
 
 def write_config_dir(tmp, defaults, shows=None):
@@ -46,9 +46,9 @@ class LoadSettingsTests(unittest.TestCase):
 
     def test_unset_show_logs_warning(self):
         config_dir = write_config_dir(self.tmp, DEFAULTS)
-        with self.assertLogs("utils.config", level="WARNING"):
+        with self.assertLogs("mise_stage.config", level="WARNING"):
             _load_settings(None, config_dir)
-        with self.assertLogs("utils.config", level="WARNING"):
+        with self.assertLogs("mise_stage.config", level="WARNING"):
             _load_settings("", config_dir)
 
     def test_show_overrides_only_listed_keys(self):
@@ -92,13 +92,34 @@ class LoadSettingsTests(unittest.TestCase):
         )
 
 
+class RealDefaultsTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_previs_file_root_defaults_to_empty_string(self):
+        with self.assertLogs("mise_stage.config", level="WARNING"):
+            settings = _load_settings(None, REPO_ROOT / "config")
+        self.assertEqual(settings["PREVIS_FILE_ROOT"], "")
+
+    def test_show_can_override_previs_file_root(self):
+        real_defaults = (REPO_ROOT / "config" / "defaults.yaml").read_text(
+            encoding="utf-8"
+        )
+        config_dir = write_config_dir(
+            self._tmp.name, real_defaults, {"abc": "PREVIS_FILE_ROOT: //server/previs\n"}
+        )
+        settings = _load_settings("abc", config_dir)
+        self.assertEqual(settings["PREVIS_FILE_ROOT"], "//server/previs")
+
+
 class ImportTests(unittest.TestCase):
     def run_import(self, show):
         env = {k: v for k, v in os.environ.items() if k != "SHOW"}
         env["PYTHONPATH"] = str(PYTHON_DIR)
         if show is not None:
             env["SHOW"] = show
-        code = "from utils import config; print(config.DEFAULT_RENDER_WIDTH, config.DEFAULT_RENDER_HEIGHT)"
+        code = "from mise_stage import config; print(config.DEFAULT_RENDER_WIDTH, config.DEFAULT_RENDER_HEIGHT)"
         return subprocess.run(
             [sys.executable, "-c", code], env=env, capture_output=True, text=True
         )
