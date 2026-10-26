@@ -30,9 +30,10 @@ def rebuild():
     """Fill the panel unless it is already filled. Maya's restore script calls this.
 
     Maya runs it when the panel is created and again when it restores the panel, so it
-    only builds a panel that is missing and always re-attaches the callbacks.
+    only builds a panel the workspace panel does not already hold and always re-attaches
+    the callbacks.
     """
-    if not camera_monitor.panel_exists(model.PANEL_NAME):
+    if not camera_monitor.panel_in_control(model.PANEL_NAME, model.CONTROL_NAME):
         camera_monitor.build_panel(model.PANEL_NAME, model.TITLE, model.CAMERA)
         saved = camera_monitor.load_pref(model.PREF_NAME)
         if saved:

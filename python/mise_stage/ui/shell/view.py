@@ -1,5 +1,5 @@
 """The shell widget: a menu bar over a blank body that later work fills with tabs."""
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from . import model
 
@@ -23,8 +23,10 @@ class ShellView(QtWidgets.QMainWindow):
         camera_menu = QtWidgets.QMenu("&Camera", self)
         self.menuBar().addMenu(camera_menu)
         camera_menu.aboutToShow.connect(self.camera_menu_about_to_show.emit)
-        self._camera_monitor_action = camera_menu.addAction("Camera &Monitor")
+        # Parent the action explicitly too: in Maya the wrapper of addAction(text) is freed while the menu keeps its own.
+        self._camera_monitor_action = QtGui.QAction("Camera &Monitor", self)
         self._camera_monitor_action.setCheckable(True)
+        camera_menu.addAction(self._camera_monitor_action)
         self._camera_monitor_action.triggered.connect(self._on_camera_monitor_triggered)
 
         self.setCentralWidget(QtWidgets.QWidget())

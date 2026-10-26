@@ -15,19 +15,35 @@ def panel_exists(panel_name):
     return bool(cmds.modelPanel(panel_name, query=True, exists=True))
 
 
-def build_panel(panel_name, label, camera):
-    """Fill the current workspace panel with a model panel looking through ``camera``.
+def panel_in_control(panel_name, control_name):
+    """True when the model panel exists and sits inside the workspace panel ``control_name``.
 
-    A panel left over under the same name is removed first, so a repeated or failed
-    build cannot collide with it. The new panel opens smooth shaded with default
-    lighting (Maya's own new-panel look is wireframe) and keeps only the menus that
-    change the look; the camera-changing View menu and the icon bar are hidden.
+    Closing a workspace panel destroys it but can leave its model panel behind with no
+    parent, so the panel existing is not enough to say the workspace panel is filled.
     """
     import maya.cmds as cmds
 
+    if not panel_exists(panel_name):
+        return False
+    return cmds.panel(panel_name, query=True, control=True).startswith(control_name + "|")
+
+
+def build_panel(panel_name, label, camera):
+    """Fill the current workspace panel with a model panel looking through ``camera``.
+
+    A panel left over under the same name is removed, so a repeated or failed build
+    cannot collide with it. The new panel opens smooth shaded with default lighting
+    (Maya's own new-panel look is wireframe) and keeps only the menus that change the
+    look; the camera-changing View menu and the icon bar are hidden.
+    """
+    import maya.cmds as cmds
+
+    # Create the layout first: deleting a UI element resets the parent Maya builds into
+    # (to the Script Editor), so the layout is made current again after the delete.
+    layout = cmds.paneLayout(configuration="single")
     if panel_exists(panel_name):
         cmds.deleteUI(panel_name, panel=True)
-    cmds.paneLayout(configuration="single")
+    cmds.setParent(layout)
     cmds.modelPanel(panel_name, label=label, menuBarVisible=True)
     cmds.modelPanel(panel_name, edit=True, camera=camera)
 
