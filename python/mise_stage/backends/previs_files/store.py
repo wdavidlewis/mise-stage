@@ -7,7 +7,6 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
 
 from . import metadata, naming
 from .errors import AlreadyExistsError, NotFoundError, NumberOutOfRangeError
@@ -60,7 +59,7 @@ class Version:
     action: int
     number: int
     path: Path
-    scene_files: Tuple[Path, ...]
+    scene_files: tuple[Path, ...]
 
     @property
     def has_scene(self) -> bool:

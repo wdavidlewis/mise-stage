@@ -56,7 +56,7 @@ def _restore_state() -> None:
     try:
         camera_monitor.apply_state(model.PANEL_NAME, saved)
     except RuntimeError as error:
-        camera_monitor.warn("The camera monitor could not restore its saved look (%s); using the default look." % error)
+        camera_monitor.warn(f"The camera monitor could not restore its saved look ({error}); using the default look.")
 
 
 def _block_input() -> None:

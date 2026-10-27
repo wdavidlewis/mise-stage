@@ -28,3 +28,5 @@ API and technical reference lives in [docs/technical/](docs/technical/README.md)
 ## Requirements
 
 Python with [PyYAML](https://pypi.org/project/PyYAML/). Maya's Python must be able to `import yaml`; check this in the script editor before relying on the config module there. Run the tests with `pip install pyyaml` then `python -m unittest discover -s tests`.
+
+For lint and type checks, install the development tools with `python -m pip install -r requirements-dev.txt`, then run `python -m ruff check python tests` and `python -m mypy`. Their settings are in `pyproject.toml`.
