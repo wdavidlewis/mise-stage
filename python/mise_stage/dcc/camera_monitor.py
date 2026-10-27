@@ -3,8 +3,6 @@
 Maya imports are deferred into the functions that need them, so this module can be
 imported and tested outside Maya. Names (panel, preference) are passed in by the caller.
 """
-from collections.abc import Callable
-
 _quit_job: int | None = None
 
 
@@ -140,7 +138,7 @@ def load_pref(name: str) -> str | None:
     return cmds.optionVar(query=name) if cmds.optionVar(exists=name) else None
 
 
-def register_quit_job(script: str | Callable[[], None]) -> None:
+def register_quit_job(script: str) -> None:
     """Run ``script`` when Maya quits. Calling this again leaves exactly one job.
 
     Args:
