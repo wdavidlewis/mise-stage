@@ -25,7 +25,11 @@ def hide() -> None:
 
 
 def is_open() -> bool:
-    """True while the panel exists."""
+    """True while the panel exists.
+
+    Returns:
+        Whether the panel exists.
+    """
     from . import controller
 
     return controller.is_open()

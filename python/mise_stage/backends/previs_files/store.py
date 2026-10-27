@@ -184,6 +184,12 @@ class PrevisFileStore:
     def list_actions(self, sequence: int) -> list[Action]:
         """List the actions in a sequence, sorted by number.
 
+        Args:
+            sequence: The sequence number.
+
+        Returns:
+            The actions in the sequence.
+
         Raises:
             NotFoundError: If the sequence does not exist.
         """
@@ -198,6 +204,13 @@ class PrevisFileStore:
     def list_versions(self, sequence: int, action: int) -> list[Version]:
         """List the versions of an action, sorted by number.
 
+        Args:
+            sequence: The sequence number.
+            action: The action number.
+
+        Returns:
+            The versions of the action, each with its scene files.
+
         Raises:
             NotFoundError: If the sequence or action does not exist.
         """
@@ -211,6 +224,13 @@ class PrevisFileStore:
 
     def latest_version(self, sequence: int, action: int) -> Version | None:
         """Return the highest-numbered version, or None if there are none.
+
+        Args:
+            sequence: The sequence number.
+            action: The action number.
+
+        Returns:
+            The highest-numbered version, or None.
 
         Raises:
             NotFoundError: If the sequence or action does not exist.
@@ -404,6 +424,13 @@ class PrevisFileStore:
     def get_action_comment(self, sequence: int, action: int) -> str:
         """Return the comment on an action, or "" when there is none.
 
+        Args:
+            sequence: The sequence number.
+            action: The action number.
+
+        Returns:
+            The comment on the action.
+
         Raises:
             NotFoundError: If the sequence or action does not exist.
             MetadataError: If the metadata file cannot be read.
@@ -413,6 +440,11 @@ class PrevisFileStore:
     def set_action_comment(self, sequence: int, action: int, comment: str) -> None:
         """Store a comment on an action.
 
+        Args:
+            sequence: The sequence number.
+            action: The action number.
+            comment: The comment text.
+
         Raises:
             NotFoundError: If the sequence or action does not exist.
             MetadataError: If the existing metadata file cannot be read.
@@ -421,6 +453,14 @@ class PrevisFileStore:
 
     def get_version_comment(self, sequence: int, action: int, version: int) -> str:
         """Return the comment on a version, or "" when there is none.
+
+        Args:
+            sequence: The sequence number.
+            action: The action number.
+            version: The version number.
+
+        Returns:
+            The comment on the version.
 
         Raises:
             NotFoundError: If the sequence, action or version does not exist.
@@ -432,6 +472,12 @@ class PrevisFileStore:
         self, sequence: int, action: int, version: int, comment: str
     ) -> None:
         """Store a comment on a version.
+
+        Args:
+            sequence: The sequence number.
+            action: The action number.
+            version: The version number.
+            comment: The comment text.
 
         Raises:
             NotFoundError: If the sequence, action or version does not exist.

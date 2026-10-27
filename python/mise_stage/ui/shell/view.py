@@ -45,5 +45,9 @@ class ShellView(QtWidgets.QMainWindow):
         self.camera_monitor_toggled.emit(checked)
 
     def set_camera_monitor_checked(self, checked: bool) -> None:
-        """Set the Camera Monitor check mark. Only the user triggering the item emits a signal."""
+        """Set the Camera Monitor check mark. Only the user triggering the item emits a signal.
+
+        Args:
+            checked: True to show the item as checked.
+        """
         self._camera_monitor_action.setChecked(checked)

@@ -8,7 +8,11 @@ from . import model, view
 
 
 def is_open() -> bool:
-    """True while the monitor panel exists. Closing it destroys the panel."""
+    """True while the monitor panel exists. Closing it destroys the panel.
+
+    Returns:
+        Whether the monitor panel exists.
+    """
     return workspace.exists(model.CONTROL_NAME)
 
 

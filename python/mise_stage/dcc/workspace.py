@@ -68,14 +68,27 @@ def restore_script(rebuild_path: str) -> str:
 
 
 def exists(name: str) -> bool:
-    """True when a workspace panel called ``name`` exists."""
+    """True when a workspace panel called ``name`` exists.
+
+    Args:
+        name: The control name of the workspace panel.
+
+    Returns:
+        Whether the workspace panel exists.
+    """
     import maya.cmds as cmds
 
     return bool(cmds.workspaceControl(name, query=True, exists=True))
 
 
 def create(name: str, label: str, rebuild_path: str) -> None:
-    """Create the panel, floating, and have Maya fill it through the restore script."""
+    """Create the panel, floating, and have Maya fill it through the restore script.
+
+    Args:
+        name: The control name of the panel.
+        label: The title shown on the panel.
+        rebuild_path: The dotted path of the function that fills the panel.
+    """
     import maya.cmds as cmds
 
     cmds.workspaceControl(
@@ -92,6 +105,10 @@ def set_visible_change(name: str, function_path: str) -> None:
 
     The rebuild function calls this, because Maya fills a new or restored panel by
     running its restore script, so attaching it there covers both.
+
+    Args:
+        name: The control name of the panel.
+        function_path: The dotted path of the function to call.
     """
     import maya.cmds as cmds
 
@@ -99,21 +116,36 @@ def set_visible_change(name: str, function_path: str) -> None:
 
 
 def raise_panel(name: str) -> None:
-    """Show the panel and bring it to the front, as a docked tab or a floating window."""
+    """Show the panel and bring it to the front, as a docked tab or a floating window.
+
+    Args:
+        name: The control name of the panel.
+    """
     import maya.cmds as cmds
 
     cmds.workspaceControl(name, edit=True, restore=True)
 
 
 def close(name: str) -> None:
-    """Close the panel. Maya itself keeps running."""
+    """Close the panel. Maya itself keeps running.
+
+    Args:
+        name: The control name of the panel.
+    """
     import maya.cmds as cmds
 
     cmds.workspaceControl(name, edit=True, close=True)
 
 
 def container_pointer(name: str) -> int | None:
-    """Return the panel's Qt container as an int pointer, or None if there is none."""
+    """Return the panel's Qt container as an int pointer, or None if there is none.
+
+    Args:
+        name: The control name of the panel.
+
+    Returns:
+        The address of the panel's Qt widget, or None.
+    """
     import maya.OpenMayaUI as omui
 
     pointer = omui.MQtUtil.findControl(name)

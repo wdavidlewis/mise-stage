@@ -45,7 +45,11 @@ def rebuild() -> None:
 
 
 def set_camera_monitor_open(open_: bool) -> None:
-    """Camera > Camera Monitor: open the monitor when checked, close it when unchecked."""
+    """Camera > Camera Monitor: open the monitor when checked, close it when unchecked.
+
+    Args:
+        open_: True when the menu item is checked, False when it is unchecked.
+    """
     if open_:
         camera_monitor.show()
     else:

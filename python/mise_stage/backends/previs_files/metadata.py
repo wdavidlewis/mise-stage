@@ -87,6 +87,12 @@ def _shared_mode(path: Path, folder: Path) -> int:
 def read_comment(folder: str | os.PathLike[str]) -> str:
     """Return the comment stored in ``folder``, or "" when there is none.
 
+    Args:
+        folder: The action or version folder that holds ``meta.json``.
+
+    Returns:
+        The stored comment.
+
     Raises:
         MetadataError: If the metadata file cannot be read or its comment is not
             a string.
@@ -100,6 +106,10 @@ def read_comment(folder: str | os.PathLike[str]) -> str:
 
 def write_comment(folder: str | os.PathLike[str], comment: str) -> None:
     """Store ``comment`` in ``folder``; a reader never sees a half-written file.
+
+    Args:
+        folder: The action or version folder to store the comment in.
+        comment: The comment text. Must be a string.
 
     Raises:
         TypeError: If ``comment`` is not a string.
