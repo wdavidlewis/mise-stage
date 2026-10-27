@@ -41,6 +41,21 @@ before the requirements are final, and ask the maintainer if it is not obvious:
 - Record these in the requirements or plan itself (for example as a
   requirement or key decision), not only in implementation notes.
 
+## Code style
+
+All Python in `python/mise_stage/` and `tests/` follows these rules.
+
+- Use Google-style docstrings on every module, public class and public function.
+  Include `Args`, `Returns` and `Raises` sections when they apply.
+- Put type hints on every function signature, including return types. Use
+  `-> None` for functions that return nothing.
+- Test methods and test modules are exempt from docstrings. A test module may
+  have a one-line docstring, and test method names should say what they check.
+  Type hints still apply to tests.
+- Do not add type hints or docstrings to code you are not otherwise changing in
+  the same PR, unless the PR is the one bringing existing code up to this
+  standard.
+
 ## After a merge
 
 - Switch to `main` and pull: `git switch main && git pull --prune`.
