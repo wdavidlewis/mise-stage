@@ -23,8 +23,10 @@ mise-stage manages cameras, shots and renders for previs in Maya. Read `GLOSSARY
 - Tree problems raise the package's own errors (subclasses of `PrevisFilesError`).
 - Tests use `unittest` (`python -m unittest discover -s tests`) and must run outside Maya.
 - Documentation examples (the README and `docs/technical/`) must run as written, so check any code sample against the API.
+- Python uses Google-style docstrings and type hints on every function signature, per the "Code style" section of `AGENTS.md`. Test methods are exempt from docstrings.
 
 ## Review focus
 
 - Prefer correctness, concurrency and shared-drive problems over style.
-- Skip purely stylistic suggestions; no linter is configured yet.
+- Missing type hints or docstrings on new or changed code is not a stylistic nit: flag it, citing the "Code style" section of `AGENTS.md`.
+- Skip other purely stylistic suggestions; no linter is configured yet.
