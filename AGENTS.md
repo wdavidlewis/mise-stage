@@ -56,6 +56,16 @@ All Python in `python/mise_stage/` and `tests/` follows these rules.
   the same PR, unless the PR is the one bringing existing code up to this
   standard.
 
+## Commands
+
+Run these from the project venv after `python -m pip install -r requirements-dev.txt`:
+
+- Tests: `python -m unittest discover -s tests`
+- Lint: `python -m ruff check python tests`
+- Type check: `python -m mypy`
+
+Run all three before opening or updating a PR. Lint and type settings are in `pyproject.toml`.
+
 ## After a merge
 
 - Switch to `main` and pull: `git switch main && git pull --prune`.
