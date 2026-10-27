@@ -1,5 +1,5 @@
 ---
-title: Where a Maya model panel can live: a workspace panel or the main layout, not a plain Qt window
+title: "Where a Maya model panel can live: a workspace panel or the main layout, not a plain Qt window"
 date: 2026-10-26
 category: developer-experience
 module: ui/shell

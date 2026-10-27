@@ -78,13 +78,6 @@ for module in (
 mise_stage.ui.camera_monitor.show()
 ```
 
-## Later work
-
-These are not built yet. They record what a Maya 2026 spike found, so the next design starts from it.
-
-- **Pointing the monitor at the Active camera.** A camera parent-constrained to persp tracks it and keeps its own lens. While you dolly persp, the follower moves smoothly. While you tumble, it catches up only when you release the mouse. It re-syncs the next time persp moves. A panel that looks through persp directly stays linked to the persp view.
-- **Hosting.** The monitor is a workspace panel by decision. The main view layout can also hold a model panel, and a plain Qt window cannot. See [where a Maya model panel can live](../solutions/developer-experience/maya-model-panel-hosting-options.md).
-
 If you changed the shell's view, close the shell and reload the shell modules first (see [Application shell](shell.md)).
 
 ## Behavior confirmed in Maya 2026
@@ -114,3 +107,10 @@ The code follows the layers in the [README](../../README.md):
 - `python/mise_stage/ui/camera_monitor/` holds the Qt side. `model.py` has the names, `view.py` the input blocker, and `controller.py` the `show`, `hide`, `is_open` and `rebuild` logic.
 - The panel is created floating with `retain=False` and a restore script that calls `mise_stage.ui.camera_monitor.controller.rebuild()`. Maya runs that script when it creates and when it restores the panel. `rebuild()` builds the model panel only if the monitor's workspace panel does not already hold one, re-attaches the visible-change callback and the quit-time save, and blocks input.
 - The Camera menu and its check live in `python/mise_stage/ui/shell/`.
+
+## Later work
+
+These are not built yet. They record what a Maya 2026 spike found, so the next design starts from it.
+
+- **Pointing the monitor at the Active camera.** A camera parent-constrained to persp tracks it and keeps its own lens. While you dolly persp, the follower moves smoothly. While you tumble, it catches up only when you release the mouse. It re-syncs the next time persp moves. A panel that looks through persp directly stays linked to the persp view.
+- **Hosting.** The monitor is a workspace panel by decision. The main view layout can also hold a model panel, and a plain Qt window cannot. See [where a Maya model panel can live](../solutions/developer-experience/maya-model-panel-hosting-options.md).
