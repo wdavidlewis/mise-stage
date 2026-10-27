@@ -72,3 +72,11 @@ All Python in `python/mise_stage/` and `tests/` follows these rules.
 gotchas, shared-drive file writes), organized by category with YAML frontmatter
 (`module`, `tags`, `problem_type`). Relevant when implementing or debugging in
 documented areas.
+
+## Scratch files and durable notes
+
+`.context/` is git-ignored local scratch (prototypes, probe scripts, logs). Nothing
+in it is shared, reviewed or kept, and another clone will not have it. Write down
+anything the project needs to keep in `docs/`: a technical reference in
+`docs/technical/`, or a solved problem or hard-won Maya or Qt finding in
+`docs/solutions/`. Put it in a PR before relying on it.
