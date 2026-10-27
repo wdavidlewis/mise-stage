@@ -8,6 +8,7 @@ import logging
 import os
 import re
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -21,13 +22,27 @@ class ConfigError(Exception):
     """The show or its config files are invalid."""
 
 
-def _read_yaml(path):
+def _read_yaml(path: Path) -> dict[str, Any]:
+    """Return the YAML mapping in ``path``, or an empty dict if the file is empty."""
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
-def _load_settings(show, config_dir):
-    """Return the defaults overlaid with the overrides for ``show``."""
+def _load_settings(show: str | None, config_dir: Path) -> dict[str, Any]:
+    """Return the defaults overlaid with the overrides for ``show``.
+
+    Args:
+        show: The show code from the SHOW environment variable, or None or ""
+            to load the defaults only.
+        config_dir: The folder holding ``defaults.yaml`` and the show files.
+
+    Returns:
+        The merged settings, keyed by setting name.
+
+    Raises:
+        ConfigError: If the show code is not alphanumeric, its config file is
+            missing, or it sets a key that ``defaults.yaml`` does not define.
+    """
     if show and not re.fullmatch(r"[A-Za-z0-9]+", show):
         raise ConfigError(f"SHOW must be alphanumeric, got {show!r}")
 

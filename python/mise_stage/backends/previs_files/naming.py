@@ -6,7 +6,7 @@ actions start at 0; versions start at 1. Widths are fixed, so a number past its
 maximum is an error rather than a wider field.
 """
 import re
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from .errors import InvalidNameError, NumberOutOfRangeError
 
@@ -26,13 +26,28 @@ _SCENE_NAME_RE = re.compile(
 
 
 class SceneName(NamedTuple):
+    """The parts of a scene name.
+
+    Attributes:
+        show: The show code.
+        sequence: The sequence number.
+        action: The action number.
+        version: The version number.
+    """
+
     show: str
     sequence: int
     action: int
     version: int
 
 
-def _check(kind, number, low, high):
+def _check(kind: str, number: Any, low: int, high: int) -> int:
+    """Return ``number`` if it is an int within ``low``..``high``.
+
+    Raises:
+        NumberOutOfRangeError: If ``number`` is not an int (a bool is rejected)
+            or is outside the range.
+    """
     if not isinstance(number, int) or isinstance(number, bool):
         raise NumberOutOfRangeError(f"{kind} number must be an integer, got {number!r}")
     if not low <= number <= high:
@@ -42,26 +57,81 @@ def _check(kind, number, low, high):
     return number
 
 
-def check_sequence(number):
+def check_sequence(number: Any) -> int:
+    """Return ``number`` if it is a valid sequence number.
+
+    Args:
+        number: The number to check.
+
+    Returns:
+        The number, unchanged.
+
+    Raises:
+        NumberOutOfRangeError: If it is not a valid sequence number.
+    """
     return _check("Sequence", number, SEQUENCE_MIN, SEQUENCE_MAX)
 
 
-def check_action(number):
+def check_action(number: Any) -> int:
+    """Return ``number`` if it is a valid action number.
+
+    Args:
+        number: The number to check.
+
+    Returns:
+        The number, unchanged.
+
+    Raises:
+        NumberOutOfRangeError: If it is not a valid action number.
+    """
     return _check("Action", number, ACTION_MIN, ACTION_MAX)
 
 
-def check_version(number):
+def check_version(number: Any) -> int:
+    """Return ``number`` if it is a valid version number.
+
+    Args:
+        number: The number to check.
+
+    Returns:
+        The number, unchanged.
+
+    Raises:
+        NumberOutOfRangeError: If it is not a valid version number.
+    """
     return _check("Version", number, VERSION_MIN, VERSION_MAX)
 
 
-def check_show(show):
+def check_show(show: Any) -> str:
+    """Return ``show`` if it is a valid show code.
+
+    Args:
+        show: The show code to check.
+
+    Returns:
+        The show code, unchanged.
+
+    Raises:
+        InvalidNameError: If ``show`` is not a non-empty string of letters and digits.
+    """
     if not isinstance(show, str) or not _SHOW_RE.fullmatch(show):
         raise InvalidNameError(f"Show code must be alphanumeric, got {show!r}")
     return show
 
 
-def check_extension(ext):
-    """Return ``ext`` without its leading dot; it must be a plain alphanumeric extension."""
+def check_extension(ext: Any) -> str:
+    """Return ``ext`` without its leading dot; it must be a plain alphanumeric extension.
+
+    Args:
+        ext: The extension to check, with or without a leading dot.
+
+    Returns:
+        The extension without its leading dot.
+
+    Raises:
+        InvalidNameError: If ``ext`` is not letters and digits, with an optional
+            leading dot.
+    """
     match = _EXTENSION_RE.fullmatch(ext) if isinstance(ext, str) else None
     if not match:
         raise InvalidNameError(
@@ -70,19 +140,53 @@ def check_extension(ext):
     return match.group(1)
 
 
-def sequence_dir_name(sequence):
+def sequence_dir_name(sequence: int) -> str:
+    """Return the folder name for a sequence, such as ``"0100"``.
+
+    Args:
+        sequence: The sequence number.
+
+    Returns:
+        The four-digit folder name.
+
+    Raises:
+        NumberOutOfRangeError: If the number is out of range.
+    """
     return f"{check_sequence(sequence):04d}"
 
 
-def action_dir_name(action):
+def action_dir_name(action: int) -> str:
+    """Return the folder name for an action, such as ``"a007"``.
+
+    Args:
+        action: The action number.
+
+    Returns:
+        The folder name, an ``a`` followed by three digits.
+
+    Raises:
+        NumberOutOfRangeError: If the number is out of range.
+    """
     return f"a{check_action(action):03d}"
 
 
-def version_dir_name(version):
+def version_dir_name(version: int) -> str:
+    """Return the folder name for a version, such as ``"v003"``.
+
+    Args:
+        version: The version number.
+
+    Returns:
+        The folder name, a ``v`` followed by three digits.
+
+    Raises:
+        NumberOutOfRangeError: If the number is out of range.
+    """
     return f"v{check_version(version):03d}"
 
 
-def _parse_dir(pattern, name, low, high):
+def _parse_dir(pattern: re.Pattern[str], name: str, low: int, high: int) -> int | None:
+    """Return the number in a folder name, or None if it does not match or is out of range."""
     match = pattern.fullmatch(name)
     if not match:
         return None
@@ -90,23 +194,58 @@ def _parse_dir(pattern, name, low, high):
     return number if low <= number <= high else None
 
 
-def parse_sequence_dir(name):
-    """Return the sequence number for a folder name, or None if it doesn't match."""
+def parse_sequence_dir(name: str) -> int | None:
+    """Return the sequence number for a folder name, or None if it doesn't match.
+
+    Args:
+        name: The folder name.
+
+    Returns:
+        The sequence number, or None.
+    """
     return _parse_dir(_SEQUENCE_DIR_RE, name, SEQUENCE_MIN, SEQUENCE_MAX)
 
 
-def parse_action_dir(name):
-    """Return the action number for a folder name, or None if it doesn't match."""
+def parse_action_dir(name: str) -> int | None:
+    """Return the action number for a folder name, or None if it doesn't match.
+
+    Args:
+        name: The folder name.
+
+    Returns:
+        The action number, or None.
+    """
     return _parse_dir(_ACTION_DIR_RE, name, ACTION_MIN, ACTION_MAX)
 
 
-def parse_version_dir(name):
-    """Return the version number for a folder name, or None if it doesn't match."""
+def parse_version_dir(name: str) -> int | None:
+    """Return the version number for a folder name, or None if it doesn't match.
+
+    Args:
+        name: The folder name.
+
+    Returns:
+        The version number, or None.
+    """
     return _parse_dir(_VERSION_DIR_RE, name, VERSION_MIN, VERSION_MAX)
 
 
-def scene_name(show, sequence, action, version):
-    """Build the scene name, without an extension."""
+def scene_name(show: str, sequence: int, action: int, version: int) -> str:
+    """Build the scene name, without an extension.
+
+    Args:
+        show: The show code.
+        sequence: The sequence number.
+        action: The action number.
+        version: The version number.
+
+    Returns:
+        The scene name, such as ``"abc_0100_a007_v003"``.
+
+    Raises:
+        InvalidNameError: If ``show`` is not a valid show code.
+        NumberOutOfRangeError: If a number is out of range.
+    """
     check_show(show)
     return (
         f"{show}_{sequence_dir_name(sequence)}_{action_dir_name(action)}"
@@ -114,8 +253,19 @@ def scene_name(show, sequence, action, version):
     )
 
 
-def parse_scene_name(name):
-    """Split a bare scene name (no extension) into its parts."""
+def parse_scene_name(name: str) -> SceneName:
+    """Split a bare scene name (no extension) into its parts.
+
+    Args:
+        name: The scene name, without an extension.
+
+    Returns:
+        The show, sequence, action and version of the scene.
+
+    Raises:
+        InvalidNameError: If ``name`` does not follow the scene name convention.
+        NumberOutOfRangeError: If the version number is out of range.
+    """
     match = _SCENE_NAME_RE.fullmatch(name) if isinstance(name, str) else None
     if not match:
         raise InvalidNameError(

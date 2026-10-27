@@ -3,7 +3,6 @@
 Maya imports are deferred into the functions that need them, so
 ``restore_script`` can be imported and tested outside Maya.
 """
-
 _RESTORE_TEMPLATE = """\
 try:
     import importlib
@@ -30,19 +29,25 @@ else:
 """
 
 
-def callback_script(function_path):
+def callback_script(function_path: str) -> str:
     """Return the script Maya runs for a panel callback such as visible-change.
 
     ``function_path`` is the dotted path of the function to call, e.g.
     ``"mise_stage.ui.camera_monitor.controller.visible_changed"``. Maya can run the
     callback before the package is importable, so a missing package is skipped quietly;
     an error raised by the function itself is a bug and surfaces.
+
+    Args:
+        function_path: The dotted path of the function to call.
+
+    Returns:
+        The Python source Maya runs for the callback.
     """
     module, _, function = function_path.rpartition(".")
     return _CALLBACK_TEMPLATE.format(module=module, function=function)
 
 
-def restore_script(rebuild_path):
+def restore_script(rebuild_path: str) -> str:
     """Return the script Maya re-runs to rebuild a panel's contents.
 
     Maya runs it at startup, before any mise-stage code is on the path, so the
@@ -51,20 +56,39 @@ def restore_script(rebuild_path):
 
     ``rebuild_path`` is the dotted path of the rebuild function, e.g.
     ``"mise_stage.ui.shell.rebuild"``.
+
+    Args:
+        rebuild_path: The dotted path of the function that rebuilds the panel.
+
+    Returns:
+        The Python source Maya runs to rebuild the panel.
     """
     module, _, function = rebuild_path.rpartition(".")
     return _RESTORE_TEMPLATE.format(module=module, function=function)
 
 
-def exists(name):
-    """True when a workspace panel called ``name`` exists."""
+def exists(name: str) -> bool:
+    """True when a workspace panel called ``name`` exists.
+
+    Args:
+        name: The control name of the workspace panel.
+
+    Returns:
+        Whether the workspace panel exists.
+    """
     import maya.cmds as cmds
 
     return bool(cmds.workspaceControl(name, query=True, exists=True))
 
 
-def create(name, label, rebuild_path):
-    """Create the panel, floating, and have Maya fill it through the restore script."""
+def create(name: str, label: str, rebuild_path: str) -> None:
+    """Create the panel, floating, and have Maya fill it through the restore script.
+
+    Args:
+        name: The control name of the panel.
+        label: The title shown on the panel.
+        rebuild_path: The dotted path of the function that fills the panel.
+    """
     import maya.cmds as cmds
 
     cmds.workspaceControl(
@@ -76,33 +100,52 @@ def create(name, label, rebuild_path):
     )
 
 
-def set_visible_change(name, function_path):
+def set_visible_change(name: str, function_path: str) -> None:
     """Call ``function_path`` whenever the panel is shown, hidden, docked, floated or closed.
 
     The rebuild function calls this, because Maya fills a new or restored panel by
     running its restore script, so attaching it there covers both.
+
+    Args:
+        name: The control name of the panel.
+        function_path: The dotted path of the function to call.
     """
     import maya.cmds as cmds
 
     cmds.workspaceControl(name, edit=True, visibleChangeCommand=callback_script(function_path))
 
 
-def raise_panel(name):
-    """Show the panel and bring it to the front, as a docked tab or a floating window."""
+def raise_panel(name: str) -> None:
+    """Show the panel and bring it to the front, as a docked tab or a floating window.
+
+    Args:
+        name: The control name of the panel.
+    """
     import maya.cmds as cmds
 
     cmds.workspaceControl(name, edit=True, restore=True)
 
 
-def close(name):
-    """Close the panel. Maya itself keeps running."""
+def close(name: str) -> None:
+    """Close the panel. Maya itself keeps running.
+
+    Args:
+        name: The control name of the panel.
+    """
     import maya.cmds as cmds
 
     cmds.workspaceControl(name, edit=True, close=True)
 
 
-def container_pointer(name):
-    """Return the panel's Qt container as an int pointer, or None if there is none."""
+def container_pointer(name: str) -> int | None:
+    """Return the panel's Qt container as an int pointer, or None if there is none.
+
+    Args:
+        name: The control name of the panel.
+
+    Returns:
+        The address of the panel's Qt widget, or None.
+    """
     import maya.OpenMayaUI as omui
 
     pointer = omui.MQtUtil.findControl(name)

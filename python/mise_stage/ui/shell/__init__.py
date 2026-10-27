@@ -10,14 +10,14 @@ and works where neither is installed.
 """
 
 
-def show():
+def show() -> None:
     """Open the panel, or bring the existing one to the front."""
     from . import controller
 
     controller.show()
 
 
-def rebuild():
+def rebuild() -> None:
     """Fill the panel with the shell if it is empty. Maya's restore script calls this."""
     from . import controller
 
