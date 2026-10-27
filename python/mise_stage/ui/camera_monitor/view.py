@@ -26,7 +26,9 @@ _BLOCKED = _KEYS | {
 
 
 class _KeyBlocker(QtCore.QObject):
-    def eventFilter(self, watched, event):
+    """Application-wide filter that swallows key events while the pointer is over a viewport."""
+
+    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         return event.type() in _KEYS
 
 
@@ -37,11 +39,11 @@ class InputBlocker(QtCore.QObject):
     that is hidden under the pointer gets no Leave, so Hide also lifts the filter.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
         self._keys = _KeyBlocker(self)
 
-    def eventFilter(self, watched, event):
+    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         kind = event.type()
         if kind == QtCore.QEvent.Enter:
             QtWidgets.QApplication.instance().installEventFilter(self._keys)
@@ -50,10 +52,16 @@ class InputBlocker(QtCore.QObject):
         return kind in _BLOCKED
 
 
-def block_input(panel):
+def block_input(panel: QtWidgets.QWidget) -> int:
     """Make every 3D viewport in ``panel`` ignore input, and return how many were found.
 
     Safe to call again on a panel that is already blocked.
+
+    Args:
+        panel: The widget that contains the model panel's viewports.
+
+    Returns:
+        The number of viewports found.
     """
     viewports = [w for w in panel.findChildren(QtWidgets.QWidget) if w.metaObject().className() == _VIEWPORT_CLASS]
     blocker = panel.findChild(InputBlocker, model.BLOCKER_NAME)

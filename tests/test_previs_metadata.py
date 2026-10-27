@@ -1,3 +1,4 @@
+"""Tests for the meta.json comment storage and its file handling."""
 import json
 import stat
 import sys
@@ -16,7 +17,7 @@ COMMENT = "Caméra déplacée — 新しい\nsecond line 🎬\r\nthird"
 
 
 class StoreCommentTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
@@ -27,38 +28,38 @@ class StoreCommentTests(unittest.TestCase):
         self.action_dir = self.root / "sequences" / "0100" / "a007"
         self.version_dir = self.action_dir / "v001"
 
-    def test_unicode_comment_round_trips_for_action_and_version(self):
+    def test_unicode_comment_round_trips_for_action_and_version(self) -> None:
         self.store.set_action_comment(100, 7, COMMENT)
         self.store.set_version_comment(100, 7, 1, COMMENT)
         self.assertEqual(self.store.get_action_comment(100, 7), COMMENT)
         self.assertEqual(self.store.get_version_comment(100, 7, 1), COMMENT)
 
-    def test_comment_is_stored_as_utf8_without_escapes(self):
+    def test_comment_is_stored_as_utf8_without_escapes(self) -> None:
         self.store.set_version_comment(100, 7, 1, "Caméra — 新しい")
         raw = (self.version_dir / "meta.json").read_bytes()
         self.assertIn("Caméra — 新しい".encode("utf-8"), raw)
         self.assertNotIn(b"\\u", raw)
 
-    def test_missing_comment_reads_as_empty(self):
+    def test_missing_comment_reads_as_empty(self) -> None:
         self.assertEqual(self.store.get_action_comment(100, 7), "")
         self.assertEqual(self.store.get_version_comment(100, 7, 1), "")
 
-    def test_setting_twice_keeps_the_second(self):
+    def test_setting_twice_keeps_the_second(self) -> None:
         self.store.set_action_comment(100, 7, "first")
         self.store.set_action_comment(100, 7, "second")
         self.assertEqual(self.store.get_action_comment(100, 7), "second")
 
-    def test_no_temporary_file_is_left_behind(self):
+    def test_no_temporary_file_is_left_behind(self) -> None:
         self.store.set_version_comment(100, 7, 1, "hello")
         self.assertEqual(
             sorted(p.name for p in self.version_dir.iterdir()), ["meta.json"]
         )
 
-    def test_metadata_file_is_not_a_scene_file(self):
+    def test_metadata_file_is_not_a_scene_file(self) -> None:
         self.store.set_version_comment(100, 7, 1, "hello")
         self.assertEqual(self.store.list_versions(100, 7)[0].scene_files, ())
 
-    def test_comment_on_missing_action_or_version_is_not_found(self):
+    def test_comment_on_missing_action_or_version_is_not_found(self) -> None:
         with self.assertRaises(NotFoundError):
             self.store.set_action_comment(100, 8, "x")
         with self.assertRaises(NotFoundError):
@@ -66,7 +67,7 @@ class StoreCommentTests(unittest.TestCase):
         with self.assertRaises(NotFoundError):
             self.store.set_version_comment(300, 7, 1, "x")
 
-    def test_simultaneous_writes_leave_one_complete_comment(self):
+    def test_simultaneous_writes_leave_one_complete_comment(self) -> None:
         comments = [f"comment {n} — é" for n in range(10)]
         with ThreadPoolExecutor(max_workers=10) as pool:
             list(pool.map(lambda c: self.store.set_action_comment(100, 7, c), comments))
@@ -77,38 +78,38 @@ class StoreCommentTests(unittest.TestCase):
 
 
 class MetadataFileTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.folder = Path(self._tmp.name)
         self.path = self.folder / "meta.json"
 
-    def test_reads_a_file_with_a_byte_order_mark(self):
+    def test_reads_a_file_with_a_byte_order_mark(self) -> None:
         self.path.write_bytes(
             b"\xef\xbb\xbf" + json.dumps({"comment": "héllo"}).encode("utf-8")
         )
         self.assertEqual(metadata.read_comment(self.folder), "héllo")
 
-    def test_invalid_json_raises_and_names_the_file(self):
+    def test_invalid_json_raises_and_names_the_file(self) -> None:
         self.path.write_text("{not json", encoding="utf-8")
         with self.assertRaises(MetadataError) as ctx:
             metadata.read_comment(self.folder)
         self.assertIn("meta.json", str(ctx.exception))
 
-    def test_wrong_shapes_raise(self):
+    def test_wrong_shapes_raise(self) -> None:
         for text in ('["a"]', '{"comment": 5}'):
             with self.subTest(text=text):
                 self.path.write_text(text, encoding="utf-8")
                 with self.assertRaises(MetadataError):
                     metadata.read_comment(self.folder)
 
-    def test_writing_over_invalid_json_raises_and_keeps_the_file(self):
+    def test_writing_over_invalid_json_raises_and_keeps_the_file(self) -> None:
         self.path.write_text("{not json", encoding="utf-8")
         with self.assertRaises(MetadataError):
             metadata.write_comment(self.folder, "x")
         self.assertEqual(self.path.read_text(encoding="utf-8"), "{not json")
 
-    def test_other_keys_survive_a_comment_write(self):
+    def test_other_keys_survive_a_comment_write(self) -> None:
         self.path.write_text(json.dumps({"comment": "old", "owner": "sam"}))
         metadata.write_comment(self.folder, "new")
         self.assertEqual(
@@ -116,11 +117,11 @@ class MetadataFileTests(unittest.TestCase):
             {"comment": "new", "owner": "sam"},
         )
 
-    def test_replace_is_retried_when_windows_reports_a_sharing_violation(self):
+    def test_replace_is_retried_when_windows_reports_a_sharing_violation(self) -> None:
         real_replace = metadata.os.replace
-        attempts = []
+        attempts: list[str] = []
 
-        def flaky_replace(src, dst):
+        def flaky_replace(src: str, dst: Path) -> None:
             attempts.append(src)
             if len(attempts) <= 2:
                 raise PermissionError("in use")
@@ -133,7 +134,7 @@ class MetadataFileTests(unittest.TestCase):
         self.assertEqual(len(attempts), 3)
         self.assertEqual(metadata.read_comment(self.folder), "hello")
 
-    def test_a_replace_that_never_succeeds_raises_and_leaves_no_temporary_file(self):
+    def test_a_replace_that_never_succeeds_raises_and_leaves_no_temporary_file(self) -> None:
         with mock.patch.object(
             metadata.os, "replace", side_effect=PermissionError("in use")
         ), mock.patch.object(metadata.time, "sleep"):
@@ -141,7 +142,7 @@ class MetadataFileTests(unittest.TestCase):
                 metadata.write_comment(self.folder, "hello")
         self.assertEqual(list(self.folder.iterdir()), [])
 
-    def test_shared_mode_keeps_an_existing_files_permission_bits(self):
+    def test_shared_mode_keeps_an_existing_files_permission_bits(self) -> None:
         self.path.write_text("{}", encoding="utf-8")
         self.path.chmod(0o664)
         self.assertEqual(
@@ -149,20 +150,20 @@ class MetadataFileTests(unittest.TestCase):
             stat.S_IMODE(self.path.stat().st_mode),
         )
 
-    def test_shared_mode_for_a_new_file_follows_the_folder_without_execute_bits(self):
+    def test_shared_mode_for_a_new_file_follows_the_folder_without_execute_bits(self) -> None:
         expected = stat.S_IMODE(self.folder.stat().st_mode) & 0o666
         self.assertEqual(metadata._shared_mode(self.path, self.folder), expected)
 
-    def test_a_comment_save_keeps_the_files_permission_bits(self):
+    def test_a_comment_save_keeps_the_files_permission_bits(self) -> None:
         metadata.write_comment(self.folder, "first")
         self.path.chmod(0o664)
         before = stat.S_IMODE(self.path.stat().st_mode)
         metadata.write_comment(self.folder, "second")
         self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), before)
 
-    def test_non_string_comment_is_rejected(self):
+    def test_non_string_comment_is_rejected(self) -> None:
         with self.assertRaises(TypeError):
-            metadata.write_comment(self.folder, None)
+            metadata.write_comment(self.folder, None)  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

@@ -9,10 +9,10 @@ from . import model
 from .view import ShellView
 
 # Keeps the widget alive; Python would otherwise free it while the panel is open.
-_view = None
+_view: ShellView | None = None
 
 
-def show():
+def show() -> None:
     """Create the panel, or fill it if it is empty and bring it to the front."""
     if not workspace.exists(model.CONTROL_NAME):
         workspace.create(model.CONTROL_NAME, model.TITLE, model.REBUILD_PATH)
@@ -21,7 +21,7 @@ def show():
     workspace.raise_panel(model.CONTROL_NAME)
 
 
-def rebuild():
+def rebuild() -> None:
     """Add the shell to the panel unless the panel already holds one."""
     global _view
 
@@ -44,7 +44,7 @@ def rebuild():
     layout.addWidget(_view)
 
 
-def set_camera_monitor_open(open_):
+def set_camera_monitor_open(open_: bool) -> None:
     """Camera > Camera Monitor: open the monitor when checked, close it when unchecked."""
     if open_:
         camera_monitor.show()
@@ -52,6 +52,6 @@ def set_camera_monitor_open(open_):
         camera_monitor.hide()
 
 
-def exit_shell():
+def exit_shell() -> None:
     """File > Exit: close the panel. Maya keeps running."""
     workspace.close(model.CONTROL_NAME)

@@ -7,12 +7,12 @@ from mise_stage.dcc import camera_monitor, workspace
 from . import model, view
 
 
-def is_open():
+def is_open() -> bool:
     """True while the monitor panel exists. Closing it destroys the panel."""
     return workspace.exists(model.CONTROL_NAME)
 
 
-def show():
+def show() -> None:
     """Create the panel, or bring the existing one to the front."""
     if not is_open():
         workspace.create(model.CONTROL_NAME, model.TITLE, model.REBUILD_PATH)
@@ -20,13 +20,13 @@ def show():
     workspace.raise_panel(model.CONTROL_NAME)
 
 
-def hide():
+def hide() -> None:
     """Close the panel."""
     if is_open():
         workspace.close(model.CONTROL_NAME)
 
 
-def rebuild():
+def rebuild() -> None:
     """Fill the panel unless it is already filled. Maya's restore script calls this.
 
     Maya runs it when the panel is created and again when it restores the panel, so it
@@ -44,7 +44,8 @@ def rebuild():
         _restore_state()
 
 
-def _restore_state():
+def _restore_state() -> None:
+    """Apply the saved look to the panel. A failure is reported as a warning."""
     saved = camera_monitor.load_pref(model.PREF_NAME)
     if not saved:
         return
@@ -54,18 +55,19 @@ def _restore_state():
         camera_monitor.warn("The camera monitor could not restore its saved look (%s); using the default look." % error)
 
 
-def _block_input():
+def _block_input() -> None:
+    """Make the panel's viewports ignore input. Warns if they cannot be blocked."""
     pointer = workspace.container_pointer(model.PANEL_NAME)
     if pointer is None or view.block_input(wrapInstance(pointer, QtWidgets.QWidget)) == 0:
         camera_monitor.warn("The camera monitor could not block camera input, so it is not view-only.")
 
 
-def visible_changed():
+def visible_changed() -> None:
     """Maya calls this when the panel is shown, hidden, docked, floated or closed."""
     save_state()
 
 
-def save_state():
+def save_state() -> None:
     """Store the panel's display state, if the monitor's workspace panel still holds it.
 
     A closed monitor can leave its model panel behind with no parent. That panel is never

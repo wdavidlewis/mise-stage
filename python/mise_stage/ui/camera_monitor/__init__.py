@@ -10,28 +10,28 @@ and works where neither is installed.
 """
 
 
-def show():
+def show() -> None:
     """Open the panel, or bring the existing one to the front."""
     from . import controller
 
     controller.show()
 
 
-def hide():
+def hide() -> None:
     """Close the panel."""
     from . import controller
 
     controller.hide()
 
 
-def is_open():
+def is_open() -> bool:
     """True while the panel exists."""
     from . import controller
 
     return controller.is_open()
 
 
-def rebuild():
+def rebuild() -> None:
     """Fill the panel if it is empty. Maya's restore script calls this."""
     from . import controller
 

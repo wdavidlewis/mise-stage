@@ -3,18 +3,19 @@
 Maya imports are deferred into the functions that need them, so this module can be
 imported and tested outside Maya. Names (panel, preference) are passed in by the caller.
 """
+from collections.abc import Callable
 
-_quit_job = None
+_quit_job: int | None = None
 
 
-def panel_exists(panel_name):
+def panel_exists(panel_name: str) -> bool:
     """True when the model panel called ``panel_name`` exists."""
     import maya.cmds as cmds
 
     return bool(cmds.modelPanel(panel_name, query=True, exists=True))
 
 
-def panel_in_control(panel_name, control_name):
+def panel_in_control(panel_name: str, control_name: str) -> bool:
     """True when the model panel exists and sits inside the workspace panel ``control_name``.
 
     Closing a workspace panel destroys it but can leave its model panel behind with no
@@ -27,7 +28,7 @@ def panel_in_control(panel_name, control_name):
     return cmds.panel(panel_name, query=True, control=True).startswith(control_name + "|")
 
 
-def build_panel(panel_name, label, camera):
+def build_panel(panel_name: str, label: str, camera: str) -> None:
     """Fill the current workspace panel with a model panel looking through ``camera``.
 
     A panel left over under the same name is removed, so a repeated or failed build
@@ -51,7 +52,8 @@ def build_panel(panel_name, label, camera):
     _hide_camera_controls(panel_name)
 
 
-def _hide_camera_controls(panel_name):
+def _hide_camera_controls(panel_name: str) -> None:
+    """Hide the panel's View menu and icon bar; warn if the View menu is not found."""
     import maya.cmds as cmds
 
     view_menus = [m for m in cmds.lsUI(menus=True, long=True) if panel_name in m and m.split("|")[-1] == "View"]
@@ -62,7 +64,7 @@ def _hide_camera_controls(panel_name):
     cmds.layout(cmds.modelPanel(panel_name, query=True, barLayout=True), edit=True, visible=False)
 
 
-def capture_state(panel_name):
+def capture_state(panel_name: str) -> str | None:
     """Return Maya's string for restoring the panel's display state, or None if it is gone."""
     import maya.cmds as cmds
 
@@ -72,7 +74,7 @@ def capture_state(panel_name):
     return cmds.modelEditor(editor, query=True, stateString=True)
 
 
-def apply_state(panel_name, state):
+def apply_state(panel_name: str, state: str) -> None:
     """Restore a display state returned by ``capture_state`` onto the panel."""
     import maya.cmds as cmds
     import maya.mel as mel
@@ -81,21 +83,21 @@ def apply_state(panel_name, state):
     mel.eval(state.replace("$editorName", editor))
 
 
-def save_pref(name, value):
+def save_pref(name: str, value: str) -> None:
     """Store a string in Maya's own preferences, which survive a restart."""
     import maya.cmds as cmds
 
     cmds.optionVar(stringValue=(name, value))
 
 
-def load_pref(name):
+def load_pref(name: str) -> str | None:
     """Return the stored string, or None if nothing has been stored."""
     import maya.cmds as cmds
 
     return cmds.optionVar(query=name) if cmds.optionVar(exists=name) else None
 
 
-def register_quit_job(script):
+def register_quit_job(script: str | Callable[[], None]) -> None:
     """Run ``script`` when Maya quits. Calling this again leaves exactly one job."""
     global _quit_job
     import maya.cmds as cmds
@@ -105,7 +107,7 @@ def register_quit_job(script):
     _quit_job = cmds.scriptJob(event=["quitApplication", script])
 
 
-def warn(message):
+def warn(message: str) -> None:
     """Print a one-line warning in the Script Editor."""
     import maya.cmds as cmds
 
