@@ -221,3 +221,6 @@ __marimo__/
 
 # Compound Engineering: personal overrides, not shared
 .compound-engineering/config.local.yaml
+
+# Compound Engineering scratch: local only, not shared. Keep anything durable in docs/.
+.context/
