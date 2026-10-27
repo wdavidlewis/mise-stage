@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Compound Engineering: personal overrides, not shared
+.compound-engineering/config.local.yaml
