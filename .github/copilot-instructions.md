@@ -29,4 +29,4 @@ mise-stage manages cameras, shots and renders for previs in Maya. Read `GLOSSARY
 
 - Prefer correctness, concurrency and shared-drive problems over style.
 - Missing type hints or docstrings on new or changed code is not a stylistic nit: flag it, citing the "Code style" section of `AGENTS.md`.
-- Skip other purely stylistic suggestions; no linter is configured yet.
+- Skip other purely stylistic suggestions. Ruff (lint) and mypy run in CI, so leave what they report to CI.

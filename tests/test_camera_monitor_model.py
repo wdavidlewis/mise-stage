@@ -43,12 +43,13 @@ class ModelTests(unittest.TestCase):
 class ImportHygieneTests(unittest.TestCase):
     def test_package_and_model_import_without_maya_or_qt(self) -> None:
         # Run in a fresh interpreter: other test modules may have loaded Qt or Maya stubs.
+        python_dir = str(REPO_ROOT / "python")
         code = (
-            "import sys; sys.path.insert(0, %r)\n"
+            f"import sys; sys.path.insert(0, {python_dir!r})\n"
             "import mise_stage.ui.camera_monitor, mise_stage.ui.camera_monitor.model\n"
             "bad = [m for m in ('maya', 'PySide6', 'shiboken6') if m in sys.modules]\n"
             "sys.exit(1 if bad else 0)\n"
-        ) % str(REPO_ROOT / "python")
+        )
         result = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
 
         self.assertEqual(result.returncode, 0, result.stderr)

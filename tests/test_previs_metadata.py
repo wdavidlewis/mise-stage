@@ -10,8 +10,12 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
-from mise_stage.backends.previs_files import MetadataError, NotFoundError, PrevisFileStore  # noqa: E402
-from mise_stage.backends.previs_files import metadata  # noqa: E402
+from mise_stage.backends.previs_files import (  # noqa: E402
+    MetadataError,
+    NotFoundError,
+    PrevisFileStore,
+    metadata,
+)
 
 COMMENT = "Caméra déplacée — 新しい\nsecond line 🎬\r\nthird"
 
@@ -37,7 +41,7 @@ class StoreCommentTests(unittest.TestCase):
     def test_comment_is_stored_as_utf8_without_escapes(self) -> None:
         self.store.set_version_comment(100, 7, 1, "Caméra — 新しい")
         raw = (self.version_dir / "meta.json").read_bytes()
-        self.assertIn("Caméra — 新しい".encode("utf-8"), raw)
+        self.assertIn("Caméra — 新しい".encode(), raw)
         self.assertNotIn(b"\\u", raw)
 
     def test_missing_comment_reads_as_empty(self) -> None:

@@ -1,0 +1,6 @@
+# Development tools for lint and type checks. Install into the project venv:
+#   python -m pip install -r requirements-dev.txt
+pyyaml==6.0.3
+types-PyYAML==6.0.12.20260906
+ruff==0.17.3
+mypy==2.4.0

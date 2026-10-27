@@ -1,0 +1,23 @@
+# Tool configuration only. The project is not packaged; code runs from python/ on sys.path.
+
+[tool.ruff]
+target-version = "py311"
+src = ["python", "tests"]
+line-length = 120
+
+[tool.ruff.lint]
+# Deliberately small: pyflakes, pycodestyle errors, import order and pyupgrade.
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["python", "tests"]
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# Maya, PySide and shiboken ship no type stubs and only exist inside Maya.
+[[tool.mypy.overrides]]
+module = ["maya", "maya.*", "PySide6", "PySide6.*", "shiboken6", "shiboken6.*"]
+ignore_missing_imports = true
