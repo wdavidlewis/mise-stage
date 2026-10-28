@@ -64,7 +64,7 @@ You can edit the file by hand. Know that:
 
 ## Several Maya sessions
 
-Every save, and every reset that has something to remove, takes a lock file, `user_settings.yaml.lock`, beside the settings file. A reset with no file, or with none of its keys in the file, changes nothing and takes no lock. A save or reset re-reads the file under the lock and changes only its own keys, so two sessions that set different settings at once both keep their change. A session that cannot get the lock within about five seconds raises `SettingsWriteError`. A lock file older than about 30 seconds is taken to be left by a crashed session and is cleared; if it cannot be cleared, the session gives up after the same five seconds. A settings folder that refuses to let the lock file be created fails at once with the real permission error, not after a wait.
+Every save, and every reset when a settings file exists, takes a lock file, `user_settings.yaml.lock`, beside the settings file. A reset with no file changes nothing and takes no lock. A save or reset re-reads the file under the lock and changes only its own keys, so two sessions that set different settings at once both keep their change. A session that cannot get the lock within about five seconds raises `SettingsWriteError`. A lock file older than about 30 seconds is taken to be left by a crashed session and is cleared; if it cannot be cleared, the session gives up after the same five seconds. A settings folder that refuses to let the lock file be created fails at once with the real permission error, not after a wait.
 
 Every save writes a whole new file and swaps it in, so a read never sees half a file.
 

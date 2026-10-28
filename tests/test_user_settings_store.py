@@ -363,6 +363,26 @@ class ResetTests(unittest.TestCase):
         self.settings.reset_group("Display")
         self.assertEqual(self.path.read_text(encoding="utf-8"), text)
 
+    def test_a_key_another_session_adds_just_before_the_reset_takes_the_lock_is_reset_too(self) -> None:
+        self.settings.set("LEVEL", "high")
+        other = UserSettings(self.directory, DEFINITIONS)
+        injected: list[int] = []
+        real_lock = store.FileLock
+
+        class AddsAKeyFirst(real_lock):  # type: ignore[valid-type, misc]
+            def __enter__(self) -> "AddsAKeyFirst":
+                if not injected:
+                    injected.append(1)
+                    other.set("COUNT", 9)
+                super().__enter__()
+                return self
+
+        with mock.patch.object(store, "FileLock", AddsAKeyFirst):
+            self.settings.reset_group("Display")
+        self.assertEqual(injected, [1], "the reset never took the lock, so the other session's add never happened")
+        self.assertEqual(self.settings.get("COUNT"), 3)
+        self.assertEqual(self.settings.get("LEVEL"), "high")
+
     def test_resetting_an_undeclared_group_raises(self) -> None:
         with self.assertRaises(UnknownGroupError):
             self.settings.reset_group("Nope")

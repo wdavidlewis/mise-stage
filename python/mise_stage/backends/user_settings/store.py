@@ -167,13 +167,12 @@ class UserSettings:
     def _reset(self, keys: list[str]) -> None:
         """Remove ``keys`` from the file, then drop any values held from failed saves for them.
 
-        The held values are kept if the reset itself fails.
+        The held values are kept if the reset itself fails. With no settings file
+        there is nothing to remove, so no folder, lock or file is created. When
+        there is a file, which keys it holds is decided under the lock, so a key
+        another session adds just before the reset is removed too.
         """
-        try:
-            contents = self._read()
-        except OSError as exc:
-            raise SettingsWriteError(f"Cannot read {self.path}: {exc}") from exc
-        if contents.problem is None and any(key in contents.data for key in keys):
+        if os.path.exists(self.path):
 
             def change(data: dict[str, Any]) -> bool:
                 present = [key for key in keys if key in data]
