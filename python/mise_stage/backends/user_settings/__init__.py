@@ -1,4 +1,5 @@
 """User settings: artist-local values kept in a file in the artist's profile folder."""
+from . import lock, store
 from .definitions import (
     AUTO_OPEN_CAMERA_MONITOR,
     CONFIRM_CAMERA_DELETE,
@@ -30,5 +31,7 @@ __all__ = [
     "UserSettings",
     "UserSettingsError",
     "default_directory",
+    "lock",
+    "store",
     "validate_definitions",
 ]

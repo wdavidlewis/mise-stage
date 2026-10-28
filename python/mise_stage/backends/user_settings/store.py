@@ -6,16 +6,18 @@ so a read sees the old file or the new one and never half of one.
 """
 import logging
 import os
+import tempfile
 import time
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, NamedTuple, TypeVar
 
 import yaml
 
 from .definitions import USER_SETTINGS, SettingDefinition, SettingValue, validate_definitions
-from .errors import InvalidValueError, UnknownSettingError
+from .errors import InvalidValueError, SettingsWriteError, UnknownSettingError
 from .location import default_directory
+from .lock import FileLock
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +33,22 @@ _T = TypeVar("_T")
 # for a warning about the file itself.
 _warned: set[tuple[str, str]] = set()
 _held: dict[tuple[str, str], SettingValue] = {}
+
+
+class _FileContents(NamedTuple):
+    """What was found in the settings file.
+
+    Attributes:
+        data: The file's mapping of keys to values; empty when the file is
+            missing, empty or unreadable.
+        exists: Whether the file exists.
+        problem: Why the file cannot be used, or None when it can. A missing
+            or empty file has no problem.
+    """
+
+    data: dict[str, Any]
+    exists: bool
+    problem: str | None
 
 
 def _reset_session_state() -> None:
@@ -137,6 +155,64 @@ class UserSettings:
         _warned.add(state_key)
         log.warning("%s: %s", self.path, message)
 
+    def set(self, key: str, value: SettingValue) -> None:
+        """Set a setting and save it to the file straight away.
+
+        Only this key changes in the file; other keys, including ones no
+        declaration names, are kept. With no file yet, setting the default
+        creates nothing. A file that cannot be parsed is renamed aside with an
+        ``.invalid`` suffix before the new file is written.
+
+        Args:
+            key: The key of a declared setting.
+            value: The new value. It must be one the setting can hold.
+
+        Raises:
+            UnknownSettingError: If no declaration has this key.
+            InvalidValueError: If the setting cannot hold the value. Nothing is
+                written.
+            SettingsWriteError: If the file could not be written. The value is
+                still held for the rest of the session and is what reads return
+                until this setting is next set or reset successfully.
+        """
+        definition = self._definition(key)
+        definition.validate(value)
+        state_key = self._state_key(key)
+        if not self.path.exists() and value == definition.default:
+            _held.pop(state_key, None)
+            return
+
+        def change(data: dict[str, Any]) -> bool:
+            data[key] = value
+            return True
+
+        try:
+            self._update(change, rewrite_unreadable=True)
+        except SettingsWriteError:
+            _held[state_key] = value
+            raise
+        _held.pop(state_key, None)
+
+    def _read(self) -> _FileContents:
+        """Read the settings file as it is now.
+
+        Raises:
+            OSError: If the file exists but cannot be opened, even after retries.
+        """
+        try:
+            text = _retry_if_busy(lambda: self.path.read_text(encoding="utf-8-sig"))
+        except FileNotFoundError:
+            return _FileContents({}, False, None)
+        try:
+            data = yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            return _FileContents({}, True, f"the settings file is not valid YAML ({exc})")
+        if data is None:
+            return _FileContents({}, True, None)
+        if not isinstance(data, dict):
+            return _FileContents({}, True, "the settings file must hold a mapping of keys to values")
+        return _FileContents({str(key): value for key, value in data.items()}, True, None)
+
     def _load(self) -> dict[str, Any]:
         """Return the settings file's mapping, or an empty one if it is missing or unreadable.
 
@@ -144,24 +220,56 @@ class UserSettings:
         mapping) warns once. Keys no declaration names also warn once each.
         """
         try:
-            text = _retry_if_busy(lambda: self.path.read_text(encoding="utf-8-sig"))
-        except FileNotFoundError:
-            return {}
+            contents = self._read()
         except OSError as exc:
             self._warn("", f"cannot read the settings file ({exc}); using defaults")
             return {}
-        try:
-            data = yaml.safe_load(text)
-        except yaml.YAMLError as exc:
-            self._warn("", f"the settings file is not valid YAML ({exc}); using defaults")
+        if contents.problem is not None:
+            self._warn("", f"{contents.problem}; using defaults")
             return {}
-        if data is None:
-            return {}
-        if not isinstance(data, dict):
-            self._warn("", "the settings file must hold a mapping of keys to values; using defaults")
-            return {}
-        data = {str(key): value for key, value in data.items()}
-        for key in data:
+        for key in contents.data:
             if key not in self._definitions:
                 self._warn(key, f"ignoring {key}, which is not a user setting")
-        return data
+        return contents.data
+
+    def _update(self, change: Callable[[dict[str, Any]], bool], *, rewrite_unreadable: bool) -> None:
+        """Change the settings file: load it, apply ``change``, and write it back.
+
+        Args:
+            change: Edits the loaded mapping in place and returns whether
+                anything changed.
+            rewrite_unreadable: Whether a file that cannot be parsed is renamed
+                aside and replaced. When False such a file is left alone.
+
+        Raises:
+            SettingsWriteError: If the folder, the lock or the swap fails.
+        """
+        try:
+            self._directory.mkdir(parents=True, exist_ok=True)
+            with FileLock(self.path.with_name(FILE_NAME + ".lock")):
+                contents = self._read()
+                if contents.problem is not None and not rewrite_unreadable:
+                    return
+                data = contents.data
+                if not change(data) and contents.problem is None:
+                    return
+                if contents.problem is not None:
+                    invalid = self.path.with_name(FILE_NAME + ".invalid")
+                    _retry_if_busy(lambda: os.replace(self.path, invalid))
+                self._write(data)
+        except OSError as exc:
+            raise SettingsWriteError(f"Cannot write {self.path}: {exc}") from exc
+
+    def _write(self, data: dict[str, Any]) -> None:
+        """Write ``data`` as the whole settings file, swapping it in so a read never sees half of it."""
+        fd, tmp = tempfile.mkstemp(dir=self._directory, prefix=".user_settings-", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+                yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            _retry_if_busy(lambda: os.replace(tmp, self.path))
+        except BaseException:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise

@@ -1,15 +1,19 @@
 """Tests for finding and reading the user settings file."""
+import contextlib
 import os
 import sys
 import tempfile
 import unittest
+from collections.abc import Iterator
 from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 
 from mise_stage.backends.user_settings import (  # noqa: E402
+    InvalidValueError,
     SettingDefinition,
+    SettingsWriteError,
     UnknownSettingError,
     UserSettings,
     default_directory,
@@ -21,6 +25,16 @@ ENABLED = SettingDefinition("ENABLED", "Display", True)
 COUNT = SettingDefinition("COUNT", "Display", 3)
 LEVEL = SettingDefinition("LEVEL", "Quality", "low", ("low", "high"))
 DEFINITIONS = (ENABLED, COUNT, LEVEL)
+
+
+@contextlib.contextmanager
+def failing_swap() -> Iterator[None]:
+    """Make every swap of the settings file fail, as a file that stays busy would."""
+    with (
+        mock.patch.object(store.os, "replace", side_effect=PermissionError("denied")),
+        mock.patch.object(store.time, "sleep"),
+    ):
+        yield
 
 
 class SettingsFolderTests(unittest.TestCase):
@@ -157,6 +171,118 @@ class ReadTests(unittest.TestCase):
             self.assertLogs(LOGGER, "WARNING"),
         ):
             self.assertEqual(self.settings.get("COUNT"), 3)
+
+
+class SetTests(unittest.TestCase):
+    def setUp(self) -> None:
+        store._reset_session_state()
+        self.addCleanup(store._reset_session_state)
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.directory = Path(self._tmp.name) / "profile"
+        self.path = self.directory / store.FILE_NAME
+        self.settings = UserSettings(self.directory, DEFINITIONS)
+
+    def leftovers(self) -> list[str]:
+        return sorted(p.name for p in self.directory.iterdir() if p.name != store.FILE_NAME)
+
+    def test_setting_the_default_with_no_file_creates_nothing(self) -> None:
+        self.settings.set("COUNT", 3)
+        self.settings.set("ENABLED", True)
+        self.assertFalse(self.directory.exists())
+
+    def test_setting_a_different_value_creates_the_folder_and_the_file(self) -> None:
+        self.settings.set("COUNT", 3)
+        self.settings.set("COUNT", 5)
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "COUNT: 5\n")
+        self.assertEqual(self.settings.get("COUNT"), 5)
+
+    def test_setting_back_to_the_default_keeps_the_file_and_other_keys(self) -> None:
+        self.settings.set("COUNT", 5)
+        self.settings.set("LEVEL", "high")
+        self.settings.set("COUNT", 3)
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "COUNT: 3\nLEVEL: high\n")
+
+    def test_a_deeply_missing_folder_is_created(self) -> None:
+        deep = UserSettings(self.directory / "a" / "b" / "c", DEFINITIONS)
+        deep.set("COUNT", 4)
+        self.assertEqual(deep.get("COUNT"), 4)
+
+    def test_a_wrong_kind_raises_and_writes_nothing(self) -> None:
+        for key, bad in (("ENABLED", "yes"), ("COUNT", True), ("COUNT", 2.5), ("LEVEL", "medium")):
+            with self.subTest(key=key, bad=bad), self.assertRaises(InvalidValueError):
+                self.settings.set(key, bad)
+        self.assertFalse(self.directory.exists())
+
+    def test_setting_an_undeclared_key_raises(self) -> None:
+        with self.assertRaises(UnknownSettingError):
+            self.settings.set("NOT_DECLARED", 1)
+
+    def test_a_choice_setting_stores_a_listed_value(self) -> None:
+        self.settings.set("LEVEL", "high")
+        self.assertEqual(self.settings.get("LEVEL"), "high")
+
+    def test_a_number_setting_stores_a_float(self) -> None:
+        ratio = UserSettings(self.directory, [SettingDefinition("RATIO", "Display", 1.5)])
+        ratio.set("RATIO", 2.25)
+        self.assertEqual(ratio.get("RATIO"), 2.25)
+
+    def test_unknown_keys_survive_a_set_and_comments_do_not(self) -> None:
+        self.directory.mkdir()
+        self.path.write_text("# my notes\nRETIRED_SETTING: 4\nCOUNT: 2\n", encoding="utf-8")
+        self.settings.set("COUNT", 9)
+        text = self.path.read_text(encoding="utf-8")
+        self.assertIn("RETIRED_SETTING: 4", text)
+        self.assertIn("COUNT: 9", text)
+        self.assertNotIn("my notes", text)
+
+    def test_a_file_with_a_syntax_error_is_kept_as_invalid_and_replaced(self) -> None:
+        self.directory.mkdir()
+        broken = "COUNT: [unclosed\n"
+        self.path.write_text(broken, encoding="utf-8")
+        invalid = self.directory / "user_settings.yaml.invalid"
+        invalid.write_text("older", encoding="utf-8")
+        self.settings.set("LEVEL", "high")
+        self.assertEqual(invalid.read_text(encoding="utf-8"), broken)
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "LEVEL: high\n")
+
+    def test_a_failed_save_raises_names_the_file_holds_the_value_and_leaves_no_litter(self) -> None:
+        self.settings.set("COUNT", 5)
+        with failing_swap(), self.assertRaises(SettingsWriteError) as raised:
+            self.settings.set("COUNT", 7)
+        self.assertIn(store.FILE_NAME, str(raised.exception))
+        self.assertEqual(self.settings.get("COUNT"), 7)
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "COUNT: 5\n")
+        self.assertEqual(self.leftovers(), [])
+
+    def test_the_next_good_save_writes_the_value_and_reads_follow_the_file_again(self) -> None:
+        with failing_swap(), self.assertRaises(SettingsWriteError):
+            self.settings.set("COUNT", 7)
+        self.settings.set("COUNT", 8)
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "COUNT: 8\n")
+        self.path.write_text("COUNT: 11\n", encoding="utf-8")
+        self.assertEqual(self.settings.get("COUNT"), 11)
+
+    def test_a_folder_that_cannot_be_created_raises_and_holds_the_value(self) -> None:
+        with mock.patch.object(Path, "mkdir", side_effect=PermissionError("denied")):
+            with self.assertRaises(SettingsWriteError):
+                self.settings.set("COUNT", 7)
+        self.assertEqual(self.settings.get("COUNT"), 7)
+
+    def test_a_held_value_is_not_returned_for_a_different_folder(self) -> None:
+        with mock.patch.object(Path, "mkdir", side_effect=PermissionError("denied")):
+            with self.assertRaises(SettingsWriteError):
+                self.settings.set("COUNT", 7)
+        other = UserSettings(Path(self._tmp.name) / "other", DEFINITIONS)
+        self.assertEqual(other.get("COUNT"), 3)
+
+    def test_setting_the_default_with_no_file_drops_a_value_held_from_a_failed_save(self) -> None:
+        with mock.patch.object(Path, "mkdir", side_effect=PermissionError("denied")):
+            with self.assertRaises(SettingsWriteError):
+                self.settings.set("COUNT", 7)
+        self.settings.set("COUNT", 3)
+        self.assertEqual(self.settings.get("COUNT"), 3)
+        self.assertFalse(self.directory.exists())
 
 
 if __name__ == "__main__":
