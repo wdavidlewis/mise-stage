@@ -12,17 +12,25 @@ _Avoid_: Project, production (in code and docs)
 The short alphanumeric identifier of a show, given in the `SHOW` environment variable. It names the show's override file.
 _Avoid_: Show name, show ID
 
-**Setting**:
-A named value the tools read to decide how they behave, such as the render width. Each setting is an uppercase key in the config files.
-_Avoid_: Option, config value, parameter
+**Show config setting**:
+A named value shared by a whole production that the tools read to decide how they behave, such as the render width. Each one is an uppercase key in the config files. It is one of three kinds of setting, with **User setting** and the scene setting still to be defined; a setting is of exactly one kind.
+_Avoid_: Setting (on its own), option, config value, parameter
 
 **Default setting**:
-A setting's value in `config/defaults.yaml`, used by every show unless that show overrides it.
+A show config setting's value in `config/defaults.yaml`, used by every show unless that show overrides it. A user setting's default is not a default setting.
 _Avoid_: Global setting, base setting
 
 **Show override**:
-A setting a show sets in its own file (`config/<SHOW>.yaml`) to replace the default. Keys a show omits keep their default values.
+A show config setting a show sets in its own file (`config/<SHOW>.yaml`) to replace the default. Keys a show omits keep their default values.
 _Avoid_: Show config, show settings file
+
+**User setting**:
+A value that belongs to one artist on one machine and profile, such as whether to confirm before deleting a camera. It has a default and belongs to one **Group**. It is separate from show config settings: no setting is both, so neither overrides the other.
+_Avoid_: Preference, user config, personal setting
+
+**Group**:
+A named collection of user settings, such as Camera Monitor, Cameras or Rendering (examples, not a fixed list). A group can be reset to its defaults as a unit.
+_Avoid_: Category, section, namespace
 
 ## Previs
 
@@ -60,5 +68,6 @@ An image or image sequence produced from a camera at a set resolution.
 
 ## Flagged ambiguities
 
-- "config" and "settings" were used interchangeably for the values and the module that reads them. Resolved: a single value is a **Setting**. The module is the config module; the words for the values are not interchangeable with it.
+- "config" and "settings" were used interchangeably for the values and the module that reads them. Resolved: a single value in the show config files is a **Show config setting**. The module is the config module; the words for the values are not interchangeable with it.
+- "Setting" alone covered only show config values, but artist-local and scene-stored values are settings too. Resolved: "setting" is the general word, and each one is exactly one kind: a **Show config setting**, a **User setting**, or a scene setting (still to be defined with #21). There are no precedence rules between kinds.
 - "show" was used for the production and for its file. Resolved: the production is a **Show**; its code is the **Show code**; its file is a **Show override** file.
