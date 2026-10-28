@@ -76,6 +76,10 @@ Run all three before opening or updating a PR. Lint and type settings are in `py
   "Automatically delete head branches" on). If it is still there, delete it
   with `git push origin --delete <branch>`.
 
+## Domain vocabulary
+
+`GLOSSARY.md` is the project's shared vocabulary (shows, settings, previs terms). Use its terms in code, docs and issues. It is the vocabulary file for tools that look for a `CONCEPTS.md`; this repo keeps no `CONCEPTS.md`.
+
 ## Documented solutions
 
 `docs/solutions/` holds documented solutions to past problems (Maya and Qt
