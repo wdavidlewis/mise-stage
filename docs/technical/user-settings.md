@@ -28,7 +28,7 @@ settings.reset_all()                         # or for every user setting
 
 A read always goes to the file, so it sees a change another Maya session just saved. Import the key constants (`CONFIRM_CAMERA_DELETE`) instead of retyping the strings.
 
-A value can be on/off, a whole number, a number, text, or one choice from a list. The default decides which: a whole-number setting rejects `True`, and a number setting accepts a whole number. To add a setting, declare it in `python/mise_stage/backends/user_settings/definitions.py`:
+A value can be on/off, a whole number, a number, text, or one choice from a list. The default decides which: a whole-number setting rejects `True`, and a number setting accepts a whole number. To add a setting, add a declaration like this one to the `USER_SETTINGS` list in `python/mise_stage/backends/user_settings/definitions.py`:
 
 ```python
 from mise_stage.backends.user_settings import SettingDefinition
@@ -64,7 +64,7 @@ You can edit the file by hand. Know that:
 
 ## Several Maya sessions
 
-Every save and reset takes a lock file, `user_settings.yaml.lock`, beside the settings file. It re-reads the file under the lock and changes only its own keys, so two sessions that set different settings at once both keep their change. A session that cannot get the lock within about five seconds raises `SettingsWriteError`. A lock file older than about 30 seconds is taken to be left by a crashed session and is cleared; if it cannot be cleared, the session gives up after the same five seconds. A settings folder that refuses to let the lock file be created fails at once with the real permission error, not after a wait.
+Every save, and every reset that has something to remove, takes a lock file, `user_settings.yaml.lock`, beside the settings file. A reset with no file, or with none of its keys in the file, changes nothing and takes no lock. A save or reset re-reads the file under the lock and changes only its own keys, so two sessions that set different settings at once both keep their change. A session that cannot get the lock within about five seconds raises `SettingsWriteError`. A lock file older than about 30 seconds is taken to be left by a crashed session and is cleared; if it cannot be cleared, the session gives up after the same five seconds. A settings folder that refuses to let the lock file be created fails at once with the real permission error, not after a wait.
 
 Every save writes a whole new file and swaps it in, so a read never sees half a file.
 

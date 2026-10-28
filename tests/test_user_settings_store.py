@@ -1,6 +1,7 @@
 """Tests for finding and reading the user settings file."""
 import contextlib
 import os
+import stat
 import sys
 import tempfile
 import unittest
@@ -270,6 +271,17 @@ class SetTests(unittest.TestCase):
         self.settings.set("COUNT", 4)
         self.assertEqual((self.directory / "user_settings.yaml.invalid").read_text(encoding="utf-8"), "- COUNT\n- LEVEL\n")
         self.assertEqual(self.path.read_text(encoding="utf-8"), "COUNT: 4\n")
+
+    def test_a_read_only_settings_file_raises_and_is_left_alone(self) -> None:
+        self.settings.set("COUNT", 5)
+        self.path.chmod(stat.S_IREAD)
+        self.addCleanup(self.path.chmod, stat.S_IREAD | stat.S_IWRITE)
+        with self.assertRaises(SettingsWriteError) as raised:
+            self.settings.set("COUNT", 7)
+        self.assertIn("read-only", str(raised.exception))
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "COUNT: 5\n")
+        self.assertEqual(self.settings.get("COUNT"), 7)
+        self.assertEqual(self.leftovers(), [])
 
     def test_a_failed_save_raises_names_the_file_holds_the_value_and_leaves_no_litter(self) -> None:
         self.settings.set("COUNT", 5)

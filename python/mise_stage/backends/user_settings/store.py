@@ -312,7 +312,15 @@ class UserSettings:
             raise SettingsWriteError(f"Cannot write {self.path}: {exc}") from exc
 
     def _write(self, data: dict[str, Any]) -> None:
-        """Write ``data`` as the whole settings file, swapping it in so a read never sees half of it."""
+        """Write ``data`` as the whole settings file, swapping it in so a read never sees half of it.
+
+        Raises:
+            PermissionError: If the settings file exists and is read-only. The swap
+                would replace it on POSIX, where only the folder's permissions count.
+            OSError: If the temporary file cannot be written or swapped in.
+        """
+        if os.path.exists(self.path) and not os.access(self.path, os.W_OK):
+            raise PermissionError(f"{self.path} is read-only")
         fd, tmp = tempfile.mkstemp(dir=self._directory, prefix=".user_settings-", suffix=".tmp")
         try:
             with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
