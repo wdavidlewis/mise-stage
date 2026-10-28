@@ -13,7 +13,7 @@ The short alphanumeric identifier of a show, given in the `SHOW` environment var
 _Avoid_: Show name, show ID
 
 **Show config setting**:
-A named value shared by a whole production that the tools read to decide how they behave, such as the render width. Each one is an uppercase key in the config files. It is one of three kinds of setting, with **User setting** and the scene setting still to be defined; a setting is of exactly one kind.
+A named value shared by a whole production that the tools read to decide how they behave, such as the render width. Each one is an uppercase key in the config files. It is one of three kinds of setting, with **User setting** and the scene setting (still to be defined with #21); a setting is of exactly one kind.
 _Avoid_: Setting (on its own), option, config value, parameter
 
 **Default setting**:

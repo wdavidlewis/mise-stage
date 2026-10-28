@@ -44,7 +44,7 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 - **A file, once created, is never removed, and nothing checks whether settings are at their defaults.** Governs R9, R10. (session-settled: user-directed.)
 - **A lock file around each read-modify-write keeps two sessions from losing each other's changes.** Governs R24. (session-settled: user-directed — chosen over optimistic re-read and retry, which leaves a small window for lost updates, and over last-writer-wins, which would drop AE6.)
 - **Settings use uppercase keys like show config, and each group holds the settings for what they act on.** Governs R6. (session-settled: user-directed — chosen over lowercase dotted keys. Confirm-on-delete is in Cameras and auto-open is in Camera Monitor, not together.)
-- **A failed write raises instead of failing quietly, and a read always goes to the file.** Governs R15, R16. (session-settled: user-approved — chosen over a warning on write and over a session-long cache: a silent failure would let the artist think a preference was saved, and a cache would hide another session's changes.)
+- **A failed write raises instead of failing quietly, and a read goes to the file except for a value whose save failed.** Governs R15, R16. (session-settled: user-approved — chosen over a warning on write and over a session-long cache: a silent failure would let the artist think a preference was saved, and a cache would hide another session's changes.)
 - **Confirm-on-delete defaults to on and auto-open defaults to off.** Governs R6. (session-settled: user-approved — a delete is hard to undo, and a panel should not open unasked.)
 - **A reset removes the reset keys from the file instead of writing default values into it.** Governs R11, R12. Settings then follow later changes to the defaults. (session-settled: user-approved.)
 
@@ -75,8 +75,8 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 
 - R19. Setting a value the setting cannot hold (the wrong kind, or a choice outside its list) raises an error and writes nothing.
 - R20. Reading or setting a setting that is not declared raises an error.
-- R15. A set that cannot be written (folder missing, read-only or locked) raises an error naming the file. The new value still applies for the rest of the session.
-- R16. A read always reflects the file as it is now, including a change another Maya session just made.
+- R15. A set that cannot be written (the folder cannot be created, or the file is read-only or locked) raises an error naming the file. The new value is held for the rest of the session and is the value reads return (R16).
+- R16. A read returns the value in the file as it is now, including a change another Maya session just made. The one exception is a value whose save failed (R15): it is returned instead of the file's value until that setting is next set or reset successfully.
 
 **Reset**
 
@@ -105,7 +105,7 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 - AE6. **Covers R8, R24.** Given two Maya sessions open, when each sets a different setting at the same moment, both values are in the file. The same holds when one session resets a group while the other sets a setting outside it.
 - AE10. **Covers R24.** Given another session holds the lock past the wait, when a feature sets a setting, an error names the file and no change is written.
 - AE7. **Covers R16.** Given two Maya sessions open, when one sets a setting, the other reads the new value without restarting.
-- AE8. **Covers R15.** Given a read-only settings folder, when a feature sets a setting, an error names the file, and a read in the same session returns the new value.
+- AE8. **Covers R15, R16.** Given a read-only settings folder, when a feature sets a setting, an error names the file, and a read in the same session returns the new value. When the folder later becomes writable and the setting is set again, the value is written and reads follow the file again.
 - AE9. **Covers R17.** Given no settings file, when a group is reset, no file exists afterwards.
 
 ### Scope Boundaries
