@@ -45,6 +45,32 @@ class ConcurrentSetTests(unittest.TestCase):
         reader = UserSettings(self.directory, COUNTERS)
         self.assertEqual([reader.get(f"COUNTER_{i}") for i in range(THREADS)], [ROUNDS] * THREADS)
 
+    def test_a_group_reset_and_a_set_outside_the_group_at_once_keep_both_effects(self) -> None:
+        groups = (
+            SettingDefinition("IN_GROUP", "First", 0),
+            SettingDefinition("OUTSIDE", "Second", 0),
+        )
+        UserSettings(self.directory, groups).set("IN_GROUP", 1)
+
+        def resetter() -> None:
+            settings = UserSettings(self.directory, groups)
+            for _ in range(ROUNDS):
+                settings.set("IN_GROUP", 9)
+                settings.reset_group("First")
+
+        def setter() -> None:
+            settings = UserSettings(self.directory, groups)
+            for number in range(1, ROUNDS + 1):
+                settings.set("OUTSIDE", number)
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            for future in [pool.submit(resetter), pool.submit(setter)]:
+                future.result()
+
+        reader = UserSettings(self.directory, groups)
+        self.assertEqual(reader.get("OUTSIDE"), ROUNDS)
+        self.assertEqual(reader.get("IN_GROUP"), 0)
+
     def test_a_reader_never_sees_a_half_written_file_while_another_session_saves(self) -> None:
         writer = UserSettings(self.directory, COUNTERS)
         reader = UserSettings(self.directory, COUNTERS)

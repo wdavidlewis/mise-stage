@@ -15,7 +15,7 @@ from typing import Any, NamedTuple, TypeVar
 import yaml
 
 from .definitions import USER_SETTINGS, SettingDefinition, SettingValue, validate_definitions
-from .errors import InvalidValueError, SettingsWriteError, UnknownSettingError
+from .errors import InvalidValueError, SettingsWriteError, UnknownGroupError, UnknownSettingError
 from .location import default_directory
 from .lock import FileLock
 
@@ -135,6 +135,55 @@ class UserSettings:
         except InvalidValueError as exc:
             self._warn(key, f"{exc}; using the default {definition.default!r}")
             return definition.default
+
+    def reset_group(self, group: str) -> None:
+        """Return every setting in a group to its default.
+
+        The group's keys are removed from the file, so the settings follow later
+        changes to the defaults. Other groups, and keys no declaration names,
+        are not touched. With no file, or none of the group's keys in it,
+        nothing is written and no file is created.
+
+        Args:
+            group: The name of a declared group.
+
+        Raises:
+            UnknownGroupError: If no declaration is in this group.
+            SettingsWriteError: If the file could not be written.
+        """
+        keys = [key for key, definition in self._definitions.items() if definition.group == group]
+        if not keys:
+            raise UnknownGroupError(f"No user settings group named {group!r}")
+        self._reset(keys)
+
+    def reset_all(self) -> None:
+        """Return every user setting to its default.
+
+        The file is kept, even when nothing is left in it.
+
+        Raises:
+            SettingsWriteError: If the file could not be written.
+        """
+        self._reset(list(self._definitions))
+
+    def _reset(self, keys: list[str]) -> None:
+        """Remove ``keys`` from the file and drop any values held from failed saves for them."""
+        for key in keys:
+            _held.pop(self._state_key(key), None)
+        try:
+            contents = self._read()
+        except OSError as exc:
+            raise SettingsWriteError(f"Cannot read {self.path}: {exc}") from exc
+        if contents.problem is not None or not any(key in contents.data for key in keys):
+            return
+
+        def change(data: dict[str, Any]) -> bool:
+            present = [key for key in keys if key in data]
+            for key in present:
+                del data[key]
+            return bool(present)
+
+        self._update(change, rewrite_unreadable=False)
 
     def _definition(self, key: str) -> SettingDefinition:
         """Return the declaration for ``key``, or raise UnknownSettingError."""

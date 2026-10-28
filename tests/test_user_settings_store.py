@@ -14,9 +14,11 @@ from mise_stage.backends.user_settings import (  # noqa: E402
     InvalidValueError,
     SettingDefinition,
     SettingsWriteError,
+    UnknownGroupError,
     UnknownSettingError,
     UserSettings,
     default_directory,
+    lock,
     store,
 )
 
@@ -283,6 +285,89 @@ class SetTests(unittest.TestCase):
         self.settings.set("COUNT", 3)
         self.assertEqual(self.settings.get("COUNT"), 3)
         self.assertFalse(self.directory.exists())
+
+
+class ResetTests(unittest.TestCase):
+    def setUp(self) -> None:
+        store._reset_session_state()
+        self.addCleanup(store._reset_session_state)
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.directory = Path(self._tmp.name) / "profile"
+        self.path = self.directory / store.FILE_NAME
+        self.settings = UserSettings(self.directory, DEFINITIONS)
+
+    def test_resetting_a_group_returns_its_settings_to_defaults_and_leaves_other_groups(self) -> None:
+        self.settings.set("COUNT", 5)
+        self.settings.set("ENABLED", False)
+        self.settings.set("LEVEL", "high")
+        self.settings.reset_group("Display")
+        self.assertEqual(self.settings.get("COUNT"), 3)
+        self.assertIs(self.settings.get("ENABLED"), True)
+        self.assertEqual(self.settings.get("LEVEL"), "high")
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "LEVEL: high\n")
+
+    def test_resetting_all_returns_every_setting_to_its_default_and_keeps_the_file(self) -> None:
+        self.settings.set("COUNT", 5)
+        self.settings.set("LEVEL", "high")
+        self.settings.reset_all()
+        self.assertEqual(self.settings.get("COUNT"), 3)
+        self.assertEqual(self.settings.get("LEVEL"), "low")
+        self.assertTrue(self.path.exists())
+        self.assertEqual(sorted(p.name for p in self.directory.iterdir()), [store.FILE_NAME])
+
+    def test_resetting_with_no_file_creates_no_file_or_folder(self) -> None:
+        self.settings.reset_group("Display")
+        self.settings.reset_all()
+        self.assertFalse(self.directory.exists())
+
+    def test_a_file_holding_none_of_the_keys_is_left_exactly_as_it_was(self) -> None:
+        self.directory.mkdir()
+        text = "# kept\nLEVEL: high\n"
+        self.path.write_text(text, encoding="utf-8")
+        self.settings.reset_group("Display")
+        self.assertEqual(self.path.read_text(encoding="utf-8"), text)
+
+    def test_resetting_an_undeclared_group_raises(self) -> None:
+        with self.assertRaises(UnknownGroupError):
+            self.settings.reset_group("Nope")
+
+    def test_unknown_keys_survive_a_reset(self) -> None:
+        self.directory.mkdir()
+        self.path.write_text("RETIRED_SETTING: 4\nCOUNT: 2\n", encoding="utf-8")
+        self.settings.reset_all()
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "RETIRED_SETTING: 4\n")
+
+    def test_a_reset_drops_a_value_held_from_a_failed_save(self) -> None:
+        self.settings.set("COUNT", 5)
+        with failing_swap(), self.assertRaises(SettingsWriteError):
+            self.settings.set("COUNT", 7)
+        self.assertEqual(self.settings.get("COUNT"), 7)
+        self.settings.reset_group("Display")
+        self.assertEqual(self.settings.get("COUNT"), 3)
+
+    def test_a_reset_drops_a_held_value_even_when_there_is_no_file(self) -> None:
+        with mock.patch.object(Path, "mkdir", side_effect=PermissionError("denied")):
+            with self.assertRaises(SettingsWriteError):
+                self.settings.set("COUNT", 7)
+        self.settings.reset_all()
+        self.assertEqual(self.settings.get("COUNT"), 3)
+
+    def test_a_file_with_a_syntax_error_is_left_in_place_by_a_reset(self) -> None:
+        self.directory.mkdir()
+        broken = "COUNT: [unclosed\n"
+        self.path.write_text(broken, encoding="utf-8")
+        self.settings.reset_all()
+        self.assertEqual(self.path.read_text(encoding="utf-8"), broken)
+        self.assertEqual(sorted(p.name for p in self.directory.iterdir()), [store.FILE_NAME])
+
+    def test_a_reset_gives_up_when_another_session_holds_the_lock_and_changes_nothing(self) -> None:
+        self.settings.set("COUNT", 5)
+        before = self.path.read_text(encoding="utf-8")
+        (self.directory / "user_settings.yaml.lock").write_text("", encoding="utf-8")
+        with mock.patch.object(lock, "LOCK_WAIT", 0.1), self.assertRaises(SettingsWriteError):
+            self.settings.reset_group("Display")
+        self.assertEqual(self.path.read_text(encoding="utf-8"), before)
 
 
 if __name__ == "__main__":
