@@ -41,13 +41,11 @@ class _FileContents(NamedTuple):
     Attributes:
         data: The file's mapping of keys to values; empty when the file is
             missing, empty or unreadable.
-        exists: Whether the file exists.
         problem: Why the file cannot be used, or None when it can. A missing
             or empty file has no problem.
     """
 
     data: dict[str, Any]
-    exists: bool
     problem: str | None
 
 
@@ -167,23 +165,25 @@ class UserSettings:
         self._reset(list(self._definitions))
 
     def _reset(self, keys: list[str]) -> None:
-        """Remove ``keys`` from the file and drop any values held from failed saves for them."""
-        for key in keys:
-            _held.pop(self._state_key(key), None)
+        """Remove ``keys`` from the file, then drop any values held from failed saves for them.
+
+        The held values are kept if the reset itself fails.
+        """
         try:
             contents = self._read()
         except OSError as exc:
             raise SettingsWriteError(f"Cannot read {self.path}: {exc}") from exc
-        if contents.problem is not None or not any(key in contents.data for key in keys):
-            return
+        if contents.problem is None and any(key in contents.data for key in keys):
 
-        def change(data: dict[str, Any]) -> bool:
-            present = [key for key in keys if key in data]
-            for key in present:
-                del data[key]
-            return bool(present)
+            def change(data: dict[str, Any]) -> bool:
+                present = [key for key in keys if key in data]
+                for key in present:
+                    del data[key]
+                return bool(present)
 
-        self._update(change, rewrite_unreadable=False)
+            self._update(change, rewrite_unreadable=False)
+        for key in keys:
+            _held.pop(self._state_key(key), None)
 
     def _definition(self, key: str) -> SettingDefinition:
         """Return the declaration for ``key``, or raise UnknownSettingError."""
@@ -251,16 +251,18 @@ class UserSettings:
         try:
             text = _retry_if_busy(lambda: self.path.read_text(encoding="utf-8-sig"))
         except FileNotFoundError:
-            return _FileContents({}, False, None)
+            return _FileContents({}, None)
+        except UnicodeDecodeError as exc:
+            return _FileContents({}, f"the settings file is not valid UTF-8 text ({exc})")
         try:
             data = yaml.safe_load(text)
         except yaml.YAMLError as exc:
-            return _FileContents({}, True, f"the settings file is not valid YAML ({exc})")
+            return _FileContents({}, f"the settings file is not valid YAML ({exc})")
         if data is None:
-            return _FileContents({}, True, None)
+            return _FileContents({}, None)
         if not isinstance(data, dict):
-            return _FileContents({}, True, "the settings file must hold a mapping of keys to values")
-        return _FileContents({str(key): value for key, value in data.items()}, True, None)
+            return _FileContents({}, "the settings file must hold a mapping of keys to values")
+        return _FileContents({str(key): value for key, value in data.items()}, None)
 
     def _load(self) -> dict[str, Any]:
         """Return the settings file's mapping, or an empty one if it is missing or unreadable.

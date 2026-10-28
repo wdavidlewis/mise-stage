@@ -127,6 +127,63 @@ class LockTests(unittest.TestCase):
         self.assertIn("user_settings.yaml.lock", str(raised.exception))
         self.assertEqual(self.path.read_text(encoding="utf-8"), before)
         self.assertTrue(self.lock_path.exists(), "a lock this session never took must be left alone")
+        self.assertEqual(self.settings.get("COUNTER_1"), 2, "the value of a save that timed out is held")
+
+    def test_a_folder_that_denies_the_lock_file_fails_fast_with_the_real_cause(self) -> None:
+        with (
+            mock.patch.object(lock, "LOCK_WAIT", 30.0),
+            mock.patch.object(lock.os, "open", side_effect=PermissionError("Permission denied")),
+            mock.patch.object(lock.time, "sleep"),
+            self.assertRaises(SettingsWriteError) as raised,
+        ):
+            self.settings.set("COUNTER_0", 4)
+        self.assertIn("denied", str(raised.exception))
+        self.assertNotIn("another session", str(raised.exception))
+
+    def test_a_stale_lock_that_cannot_be_removed_times_out_instead_of_spinning(self) -> None:
+        self.lock_path.write_text("", encoding="utf-8")
+        long_ago = time.time() - 3600
+        os.utime(self.lock_path, (long_ago, long_ago))
+        started = time.monotonic()
+        with (
+            mock.patch.object(lock, "LOCK_WAIT", 0.2),
+            mock.patch.object(lock.os, "unlink", side_effect=PermissionError("held")),
+            self.assertRaises(SettingsWriteError) as raised,
+        ):
+            self.settings.set("COUNTER_0", 4)
+        self.assertIn("another session", str(raised.exception))
+        self.assertLess(time.monotonic() - started, 5.0)
+
+    def test_releasing_the_lock_retries_when_the_file_is_briefly_busy(self) -> None:
+        real_unlink = os.unlink
+        calls: list[int] = []
+
+        def busy_once(path: str | os.PathLike[str]) -> None:
+            calls.append(1)
+            if len(calls) == 1:
+                raise PermissionError("busy")
+            real_unlink(path)
+
+        with mock.patch.object(lock.os, "unlink", busy_once), mock.patch.object(lock.time, "sleep"):
+            with lock.FileLock(self.lock_path):
+                self.assertTrue(self.lock_path.exists())
+        self.assertFalse(self.lock_path.exists())
+        self.assertEqual(len(calls), 2)
+
+    def test_a_lock_file_that_will_not_go_is_left_with_a_warning(self) -> None:
+        with (
+            mock.patch.object(lock.os, "unlink", side_effect=PermissionError("held")),
+            mock.patch.object(lock.time, "sleep"),
+            self.assertLogs(lock.log, "WARNING"),
+        ):
+            with lock.FileLock(self.lock_path):
+                pass
+        self.assertTrue(self.lock_path.exists())
+
+    def test_releasing_a_lock_that_is_already_gone_is_quiet(self) -> None:
+        with self.assertNoLogs(lock.log, "WARNING"):
+            with lock.FileLock(self.lock_path):
+                self.lock_path.unlink()
 
     def test_a_lock_left_by_a_crashed_session_is_cleared(self) -> None:
         self.lock_path.write_text("", encoding="utf-8")

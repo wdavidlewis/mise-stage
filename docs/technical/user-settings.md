@@ -60,11 +60,11 @@ You can edit the file by hand. Know that:
 - A value the setting cannot hold (text for an on/off setting, or a choice not in the list) is ignored and the default is used. The log gets one warning per key per Maya session.
 - A key that is not a user setting is ignored, warned about once, and kept in the file.
 - Comments and formatting are not kept. The next time a setting is saved, the file is rewritten without them.
-- If the file is not valid YAML, settings read as their defaults. The next time a setting is saved, the broken file is renamed to `user_settings.yaml.invalid` (replacing an older one) and a new file is written, so your edits are not lost.
+- If the file is not valid YAML, is not UTF-8 text (save it as UTF-8, not "Unicode" or UTF-16), or does not hold a mapping of keys to values, settings read as their defaults. The next time a setting is saved, the broken file is renamed to `user_settings.yaml.invalid` (replacing an older one) and a new file is written, so your edits are not lost.
 
 ## Several Maya sessions
 
-Every save and reset takes a lock file, `user_settings.yaml.lock`, beside the settings file. It re-reads the file under the lock and changes only its own keys, so two sessions that set different settings at once both keep their change. A session that cannot get the lock within about five seconds raises `SettingsWriteError`. A lock file older than about 30 seconds is taken to be left by a crashed session and is cleared.
+Every save and reset takes a lock file, `user_settings.yaml.lock`, beside the settings file. It re-reads the file under the lock and changes only its own keys, so two sessions that set different settings at once both keep their change. A session that cannot get the lock within about five seconds raises `SettingsWriteError`. A lock file older than about 30 seconds is taken to be left by a crashed session and is cleared; if it cannot be cleared, the session gives up after the same five seconds. A settings folder that refuses to let the lock file be created fails at once with the real permission error, not after a wait.
 
 Every save writes a whole new file and swaps it in, so a read never sees half a file.
 

@@ -18,6 +18,7 @@ LOCK_WAIT = 5.0
 STALE_AFTER = 30.0
 _PAUSE = 0.01
 _RELEASE_ATTEMPTS = 20
+_DENIED_ATTEMPTS = 20
 
 
 class FileLock:
@@ -29,6 +30,8 @@ class FileLock:
     Raises:
         SettingsWriteError: From ``with``, if the lock could not be taken
             within ``LOCK_WAIT`` seconds.
+        PermissionError: From ``with``, if the folder keeps refusing to let the
+            lock file be created although no lock file is there.
     """
 
     def __init__(self, path: str | os.PathLike[str]) -> None:
@@ -36,15 +39,21 @@ class FileLock:
 
     def __enter__(self) -> "FileLock":
         deadline = time.monotonic() + LOCK_WAIT
+        denied = 0
         while True:
             try:
                 os.close(os.open(self._path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
                 return self
-            except (FileExistsError, PermissionError):
-                # Another session holds it, or Windows is mid-delete of the file.
-                pass
-            if self._is_stale():
-                self._remove()
+            except FileExistsError:
+                pass  # another session holds the lock
+            except PermissionError:
+                # Windows refuses for a moment while the last holder's lock file is
+                # being deleted. A folder that keeps refusing with no lock file there
+                # is a real permission problem, so fail with it instead of waiting.
+                denied += 1
+                if denied > _DENIED_ATTEMPTS and not os.path.exists(self._path):
+                    raise
+            if self._is_stale() and self._remove():
                 continue
             if time.monotonic() >= deadline:
                 raise SettingsWriteError(f"Cannot get the lock {self._path}: another session is changing the settings")
@@ -73,9 +82,17 @@ class FileLock:
         except OSError:
             return False
 
-    def _remove(self) -> None:
-        """Remove a stale lock file, ignoring a file that is already gone or busy."""
+    def _remove(self) -> bool:
+        """Remove a stale lock file.
+
+        Returns:
+            True if the file is gone, so the lock can be tried again at once. False
+            if it could not be removed, so the caller keeps to its deadline.
+        """
         try:
             os.unlink(self._path)
+        except FileNotFoundError:
+            return True
         except OSError:
-            pass
+            return False
+        return True

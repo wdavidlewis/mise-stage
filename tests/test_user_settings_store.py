@@ -116,6 +116,14 @@ class ReadTests(unittest.TestCase):
         self.assertEqual(len(logs.records), 1)
         self.assertEqual(self.path.read_text(encoding="utf-8"), text)
 
+    def test_a_file_that_is_not_utf8_text_returns_defaults_and_warns_once(self) -> None:
+        self.path.write_bytes("COUNT: 5\n".encode("utf-16"))
+        with self.assertLogs(LOGGER, "WARNING") as logs:
+            self.assertEqual(self.settings.get("COUNT"), 3)
+            self.assertEqual(self.settings.get("ENABLED"), True)
+        self.assertEqual(len(logs.records), 1)
+        self.assertIn("UTF-8", logs.output[0])
+
     def test_yaml_that_is_not_a_mapping_returns_defaults_and_warns(self) -> None:
         self.write_file("- ENABLED\n- COUNT\n")
         with self.assertLogs(LOGGER, "WARNING"):
@@ -248,6 +256,21 @@ class SetTests(unittest.TestCase):
         self.assertEqual(invalid.read_text(encoding="utf-8"), broken)
         self.assertEqual(self.path.read_text(encoding="utf-8"), "LEVEL: high\n")
 
+    def test_a_file_that_is_not_utf8_text_is_kept_as_invalid_by_a_set(self) -> None:
+        self.directory.mkdir()
+        raw = "COUNT: 5\n".encode("utf-16")
+        self.path.write_bytes(raw)
+        self.settings.set("LEVEL", "high")
+        self.assertEqual((self.directory / "user_settings.yaml.invalid").read_bytes(), raw)
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "LEVEL: high\n")
+
+    def test_yaml_that_is_not_a_mapping_is_kept_as_invalid_by_a_set(self) -> None:
+        self.directory.mkdir()
+        self.path.write_text("- COUNT\n- LEVEL\n", encoding="utf-8")
+        self.settings.set("COUNT", 4)
+        self.assertEqual((self.directory / "user_settings.yaml.invalid").read_text(encoding="utf-8"), "- COUNT\n- LEVEL\n")
+        self.assertEqual(self.path.read_text(encoding="utf-8"), "COUNT: 4\n")
+
     def test_a_failed_save_raises_names_the_file_holds_the_value_and_leaves_no_litter(self) -> None:
         self.settings.set("COUNT", 5)
         with failing_swap(), self.assertRaises(SettingsWriteError) as raised:
@@ -352,6 +375,26 @@ class ResetTests(unittest.TestCase):
                 self.settings.set("COUNT", 7)
         self.settings.reset_all()
         self.assertEqual(self.settings.get("COUNT"), 3)
+
+    def test_a_failed_reset_keeps_the_value_held_from_a_failed_save(self) -> None:
+        self.settings.set("COUNT", 5)
+        with failing_swap(), self.assertRaises(SettingsWriteError):
+            self.settings.set("COUNT", 7)
+        lock_path = self.directory / "user_settings.yaml.lock"
+        lock_path.write_text("", encoding="utf-8")
+        with mock.patch.object(lock, "LOCK_WAIT", 0.1), self.assertRaises(SettingsWriteError):
+            self.settings.reset_group("Display")
+        self.assertEqual(self.settings.get("COUNT"), 7)
+        lock_path.unlink()
+        self.settings.reset_group("Display")
+        self.assertEqual(self.settings.get("COUNT"), 3)
+
+    def test_a_file_that_is_not_utf8_text_is_left_in_place_by_a_reset(self) -> None:
+        self.directory.mkdir()
+        raw = "COUNT: 5\n".encode("utf-16")
+        self.path.write_bytes(raw)
+        self.settings.reset_all()
+        self.assertEqual(self.path.read_bytes(), raw)
 
     def test_a_file_with_a_syntax_error_is_left_in_place_by_a_reset(self) -> None:
         self.directory.mkdir()
