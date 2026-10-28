@@ -42,6 +42,8 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 - **A bad file, bad value or unknown key falls back to defaults with a warning.** Governs R13. (session-settled: user-approved — chosen over raising an error as show settings do and over backing up and resetting the file: a typo in a personal file must not stop Maya tooling from starting.)
 - **The code is pure Python in `backends/user_settings/`, with tests in `tests/test_user_settings*.py`.** Governs R14. (session-settled: user-approved — chosen over extending the read-only `config` module and over adding a `dcc/` adapter.)
 - **A file, once created, is never removed, and nothing checks whether settings are at their defaults.** Governs R9, R10. (session-settled: user-directed.)
+- **A lock file around each read-modify-write keeps two sessions from losing each other's changes.** Governs R24. (session-settled: user-directed — chosen over optimistic re-read and retry, which leaves a small window for lost updates, and over last-writer-wins, which would drop AE6.)
+- **Settings use uppercase keys like show config, and each group holds the settings for what they act on.** Governs R6. (session-settled: user-directed — chosen over lowercase dotted keys. Confirm-on-delete is in Cameras and auto-open is in Camera Monitor, not together.)
 - **A failed write raises instead of failing quietly, and a read always goes to the file.** Governs R15, R16. (session-settled: user-approved — chosen over a warning on write and over a session-long cache: a silent failure would let the artist think a preference was saved, and a cache would hide another session's changes.)
 - **Confirm-on-delete defaults to on and auto-open defaults to off.** Governs R6. (session-settled: user-approved — a delete is hard to undo, and a panel should not open unasked.)
 - **A reset removes the reset keys from the file instead of writing default values into it.** Governs R11, R12. Settings then follow later changes to the defaults. (session-settled: user-approved.)
@@ -56,12 +58,18 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 - R3. A setting is a user setting, a show config setting or a scene setting, never more than one, and a user setting is not affected by show config or scene settings.
 - R4. Each user setting belongs to exactly one group, such as Camera Monitor, Cameras or Rendering.
 - R5. A user setting's value can be on/off, a number, free text, or one choice from a fixed list, and the setting's default decides which. A choice setting rejects any value outside its list.
-- R6. The camera manager's two settings are declared: confirm before deleting a camera, defaulting to on, and automatically open the camera monitor when a camera is activated, defaulting to off. Nothing reads them yet.
+- R6. The camera manager's two settings are declared, and nothing reads them yet. Each is addressed by its key alone, and a key is unique across all user settings.
+
+  | Key | Group | Kind | Default | Meaning |
+  |---|---|---|---|---|
+  | `CONFIRM_CAMERA_DELETE` | Cameras | on/off | on | Ask before deleting a camera |
+  | `AUTO_OPEN_CAMERA_MONITOR` | Camera Monitor | on/off | off | Open the camera monitor when a camera is activated and the monitor is closed |
 
 **Reading and writing**
 
 - R7. Features read and write user settings through Python. There is no settings dialog.
 - R8. Setting a value writes to the file immediately and changes only that key.
+- R24. Every set and every reset takes a short-lived lock beside the settings file, re-reads the file under the lock, changes only its own keys, writes, and releases the lock, so no session's change is lost. A session that cannot get the lock within a short wait raises an error per R15. The lock works on Windows and on POSIX.
 - R9. The file is created the first time a setting is changed away from its default. While no file exists, setting a value equal to its default does not create one.
 - R10. Once the file exists it is never removed, even when every setting is back at its default. A value set equal to its default is written like any other.
 
@@ -94,7 +102,8 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 - AE3. **Covers R11.** Given changed settings in the Cameras and Rendering groups, when the Cameras group is reset, the Cameras settings read their defaults and the Rendering settings keep their values.
 - AE4. **Covers R12.** Given changed settings in several groups, when all are reset, every setting reads its default and the file still exists.
 - AE5. **Covers R13.** Given a file that holds a text value for an on/off setting, when the setting is read, it returns the default and a warning is logged. The file is unchanged until a setting is next set.
-- AE6. **Covers R8.** Given two Maya sessions open, when each sets a different setting, both values are in the file.
+- AE6. **Covers R8, R24.** Given two Maya sessions open, when each sets a different setting at the same moment, both values are in the file. The same holds when one session resets a group while the other sets a setting outside it.
+- AE10. **Covers R24.** Given another session holds the lock past the wait, when a feature sets a setting, an error names the file and no change is written.
 - AE7. **Covers R16.** Given two Maya sessions open, when one sets a setting, the other reads the new value without restarting.
 - AE8. **Covers R15.** Given a read-only settings folder, when a feature sets a setting, an error names the file, and a read in the same session returns the new value.
 - AE9. **Covers R17.** Given no settings file, when a group is reset, no file exists afterwards.
@@ -127,7 +136,9 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 
 - The exact folder and file names under each platform's per-user app-data folder.
 - How a setting, its group, its default and its list of choices are declared.
-- How two sessions writing at once keep each other's keys (AE6), and whether the atomic-write practice in `docs/solutions/best-practices/atomic-file-writes-preserve-shared-permissions.md` applies to a profile folder.
+- The lock's wait time, and how a lock left behind by a crashed session is recognised and cleared.
+- Whether the atomic-write practice in `docs/solutions/best-practices/atomic-file-writes-preserve-shared-permissions.md` applies to a profile folder.
+- The Python names of the read, set and reset functions. The settings are addressed by the keys in R6.
 - How group names are validated.
 
 ### Sources / Research
