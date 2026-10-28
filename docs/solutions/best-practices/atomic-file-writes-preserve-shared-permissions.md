@@ -1,6 +1,7 @@
 ---
 title: Atomic file writes must carry over the target's permissions
 date: 2026-10-25
+last_updated: 2026-10-27
 category: best-practices
 module: backends/previs_files
 problem_type: best_practice
@@ -35,6 +36,8 @@ Two other details of the same save path:
 - Use a unique temp name (`mkstemp` in the target folder, so the swap stays on one filesystem) so simultaneous writers do not collide.
 - Wrap `os.replace` in `_retry_if_busy`. Windows raises `PermissionError` while another writer is mid-swap, and it clears within milliseconds.
 
+An atomic swap is necessary but not sufficient when more than one process updates the same file by reading it, changing a key and writing it back. The swap keeps a reader from seeing half a file. It does not stop two writers that each read the old file from erasing one another's change, and with many writers at once the Windows retry above can run out. That needs a lock around the whole read, change and write; see [lock-file-read-modify-write-pitfalls-on-windows.md](lock-file-read-modify-write-pitfalls-on-windows.md).
+
 ## Why This Matters
 
 The failure only appears on POSIX with more than one user, and a Windows-only test run passes. The code gives no hint that the temp file's default mode matters, so a new writer for render data would plausibly omit the `chmod`.
@@ -44,6 +47,9 @@ The failure only appears on POSIX with more than one user, and a Windows-only te
 - Any new code that writes a file into the shared previs or render tree through a temp file and rename.
 - Reviewing such a change: check for the mode carry-over.
 
+The mode carry-over is for files in a tree several artists share. A file in one artist's own profile folder, such as the user settings file written in `python/mise_stage/backends/user_settings/store.py`, keeps `mkstemp`'s owner-only mode on purpose and has its own small copy of the swap, so a review should not ask for the `chmod` there.
+
 ## Related
 
 - PR #8 (Copilot review finding, fixed before merge)
+- [lock-file-read-modify-write-pitfalls-on-windows.md](lock-file-read-modify-write-pitfalls-on-windows.md): why an atomic swap alone does not make a shared read-modify-write safe
