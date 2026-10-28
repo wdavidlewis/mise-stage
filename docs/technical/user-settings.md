@@ -61,6 +61,7 @@ You can edit the file by hand. Know that:
 - A key that is not a user setting is ignored, warned about once, and kept in the file.
 - Comments and formatting are not kept. The next time a setting is saved, the file is rewritten without them.
 - If the file is not valid YAML, is not UTF-8 text (save it as UTF-8, not "Unicode" or UTF-16), or does not hold a mapping of keys to values, settings read as their defaults. The next time a setting is saved, the broken file is renamed to `user_settings.yaml.invalid` (replacing an older one) and a new file is written, so your edits are not lost.
+- If the file exists but cannot be opened at all (no permission, or another program is holding it), settings read as their defaults with a warning, and a save raises `SettingsWriteError` naming the file. Nothing is moved: a valid file that is only held for a moment must not be set aside, and the new value is still held for the rest of the Maya session.
 
 ## Several Maya sessions
 

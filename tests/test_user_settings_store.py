@@ -272,6 +272,21 @@ class SetTests(unittest.TestCase):
         self.assertEqual((self.directory / "user_settings.yaml.invalid").read_text(encoding="utf-8"), "- COUNT\n- LEVEL\n")
         self.assertEqual(self.path.read_text(encoding="utf-8"), "COUNT: 4\n")
 
+    def test_a_valid_file_that_cannot_be_opened_is_not_moved_and_the_save_raises(self) -> None:
+        self.settings.set("COUNT", 5)
+        self.settings.set("LEVEL", "high")
+        before = self.path.read_text(encoding="utf-8")
+        with (
+            mock.patch.object(Path, "read_text", side_effect=PermissionError("held")),
+            mock.patch.object(store.time, "sleep"),
+            self.assertRaises(SettingsWriteError) as raised,
+        ):
+            self.settings.set("COUNT", 7)
+        self.assertIn(store.FILE_NAME, str(raised.exception))
+        self.assertEqual(self.path.read_text(encoding="utf-8"), before)
+        self.assertEqual(self.leftovers(), [])
+        self.assertEqual(self.settings.get("COUNT"), 7)
+
     def test_a_read_only_settings_file_raises_and_is_left_alone(self) -> None:
         self.settings.set("COUNT", 5)
         self.path.chmod(stat.S_IREAD)

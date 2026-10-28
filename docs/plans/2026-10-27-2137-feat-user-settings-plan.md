@@ -20,7 +20,7 @@ execution: code
 - **Who finishes:** `ce-work` implements and verifies, then updates PR #32.
 - **Open blockers:** None.
 
-Product Contract preservation: changed: R13 (an unreadable file is kept aside as `.invalid` at the next set instead of being overwritten, so hand edits survive a typo; an unknown key is ignored and kept because it has no default to fall back to), and R15 and R16 (the folder is created on the first save, and a value whose save failed is held for the session; these settle a contradiction between R15 and R16 that review found). AE11 is new. All other requirements and IDs are unchanged.
+Product Contract preservation: changed: R13 (an invalid file is kept aside as `.invalid` at the next set instead of being overwritten, so hand edits survive a typo; a file that cannot be opened is not moved, and a save raises instead; an unknown key is ignored and kept because it has no default to fall back to), and R15 and R16 (the folder is created on the first save, and a value whose save failed is held for the session; these settle a contradiction between R15 and R16 that review found). AE11 is new. All other requirements and IDs are unchanged.
 
 ---
 
@@ -91,7 +91,7 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 
 **Bad data**
 
-- R13. An unreadable file, a wrong-typed value, an out-of-list choice or an unknown key logs a warning. The first three fall back to the setting's default, and an unknown key, which has no default, is ignored and kept (R23). The file is not rewritten until the artist next sets a setting, and an unreadable file is then renamed aside with an `.invalid` suffix instead of being overwritten. A warning appears once per key per Maya session.
+- R13. An invalid file (not valid YAML, not UTF-8 text, or not a mapping of keys to values), a wrong-typed value, an out-of-list choice or an unknown key logs a warning. The first three fall back to the setting's default, and an unknown key, which has no default, is ignored and kept (R23). The file is not rewritten until the artist next sets a setting, and an invalid file is then renamed aside with an `.invalid` suffix instead of being overwritten. A file that exists but cannot be opened (no permission, or held by another program) also reads as defaults with a warning, but a save raises per R15 and moves nothing, because a valid file that is only briefly held must not be set aside. A warning appears once per key per Maya session.
 - R23. Setting a value leaves unknown keys in the file untouched. Comments and formatting are not preserved, and the docs say so (R21).
 
 **Placement**
