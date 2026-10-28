@@ -20,7 +20,7 @@ execution: code
 - **Who finishes:** `ce-work` implements and verifies, then updates PR #32.
 - **Open blockers:** None.
 
-Product Contract preservation: changed: R13 (an unreadable file is kept aside as `.invalid` at the next set instead of being overwritten, so hand edits survive a typo; an unknown key is ignored and kept because it has no default to fall back to), and R15 and R16 (the folder is created on the first save, and a value whose save failed is held for the session; these settle a contradiction between R15 and R16 that review found). AE11 is new. All other requirements and IDs are unchanged.
+Product Contract preservation: changed: R13 (an invalid file is kept aside as `.invalid` at the next set instead of being overwritten, so hand edits survive a typo; a file that cannot be opened is not moved, and a save raises instead; an unknown key is ignored and kept because it has no default to fall back to), and R15 and R16 (the folder is created on the first save, and a value whose save failed is held for the session; these settle a contradiction between R15 and R16 that review found). AE11 is new. All other requirements and IDs are unchanged.
 
 ---
 
@@ -91,7 +91,7 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 
 **Bad data**
 
-- R13. An unreadable file, a wrong-typed value, an out-of-list choice or an unknown key logs a warning. The first three fall back to the setting's default, and an unknown key, which has no default, is ignored and kept (R23). The file is not rewritten until the artist next sets a setting, and an unreadable file is then renamed aside with an `.invalid` suffix instead of being overwritten. A warning appears once per key per Maya session.
+- R13. An invalid file (not valid YAML, not UTF-8 text, or not a mapping of keys to values), a wrong-typed value, an out-of-list choice or an unknown key logs a warning. The first three fall back to the setting's default, and an unknown key, which has no default, is ignored and kept (R23). The file is not rewritten until the artist next sets a setting, and an invalid file is then renamed aside with an `.invalid` suffix instead of being overwritten. A file that exists but cannot be opened (no permission, or held by another program) also reads as defaults with a warning, but a save raises per R15 and moves nothing, because a valid file that is only briefly held must not be set aside. A warning appears once per key per Maya session.
 - R23. Setting a value leaves unknown keys in the file untouched. Comments and formatting are not preserved, and the docs say so (R21).
 
 **Placement**
@@ -168,7 +168,7 @@ Settings now fall into three kinds, each with its own home and no overlap: show 
 - KTD5. **Under the lock, a set loads the current mapping, changes its own keys, writes a temporary file in the same folder, and swaps it in with `os.replace`, retrying a short while on `PermissionError`.** The permission copy that `write_comment` does is left out, because the profile folder belongs to one artist and the owner-only mode `mkstemp` gives is what is wanted. The retry helper is a small local copy, not an import of the previs files module's private one. Governs R8, R10, R23. The shared-tree learning in `docs/solutions/best-practices/atomic-file-writes-preserve-shared-permissions.md` is why a plain `open` and write is not used.
 - KTD11. **Reads take no lock, because a write never changes the settings file in place.** Every write builds the whole new file as a temporary file and swaps it in with `os.replace` (KTD5), so a read sees either the old file or the new one and never a half-written one. The one transient failure on Windows is `PermissionError` while the swap is under way, which a read retries (KTD5, U2) before treating the file as unreadable. Governs R13, R16, R24.
 - KTD12. **A key in the file that no declaration names is ignored by reads, warned about once, and kept by every write.** It has no setting, so it has no default to fall back to. Only a value that is invalid for a declared setting (wrong kind, or a choice outside its list) reads as that setting's default. Governs R13, R23.
-- KTD6. **A set whose creation rule holds writes nothing.** With no file and a value equal to the default, the set returns without creating the folder, the lock or the file. A reset with no file, or with none of its keys in the file, also returns before taking the lock. Each of these still drops any value held from a failed write for the keys involved, because the set or reset succeeded (R16). Governs R9, R16, R17.
+- KTD6. **A set whose creation rule holds writes nothing.** With no file and a value equal to the default, the set returns without creating the folder, the lock or the file. A reset with no file also returns before taking the lock; with a file, it takes the lock and decides under it which keys to remove, so a key another session adds just before the reset is removed too, and a file holding none of the keys is left unchanged. Each of these still drops any value held from a failed write for the keys involved, because the set or reset succeeded (R16). Governs R9, R16, R17.
 - KTD7. **A file that cannot be parsed, or parses to something other than a mapping, reads as empty and warns once.** At the next set it is renamed to the same name plus `.invalid`, replacing an older one, and a new file is written. A reset leaves it alone. Governs R13.
 - KTD8. **Warnings and failed-write values are module-level state keyed by the resolved file path and key.** "Once per key per Maya session" and "for the rest of the session" both mean the process, and features may each build their own store object. A private helper clears both, for tests. A failed-write value is dropped when that setting is next set or reset successfully. Governs R13, R15, R16.
 - KTD9. **Problems raise errors that subclass one `UserSettingsError`, following the previs files convention.** `UnknownSettingError` and `UnknownGroupError` cover R20, `InvalidValueError` covers R19, and `SettingsWriteError` covers a failed write, a folder that cannot be created and a lock timeout, always naming the file. Governs R15, R19, R20, R24.
@@ -310,8 +310,8 @@ flowchart TB
   - Test `tests/test_user_settings_store.py`
 - **Approach:**
   1. Reset first drops any held failed-write values for the keys it covers, and an unknown group raises `UnknownGroupError` before anything else.
-  2. It then returns at once, without taking the lock, when no file exists or an unparseable file is present.
-  3. Otherwise it takes the lock, loads the mapping, removes the keys of the declarations in the group (or all declared keys), and writes only if something was removed. Unknown keys stay.
+  2. It then returns at once, without taking the lock, when no file exists.
+  3. Otherwise it takes the lock, loads the mapping, leaves an unparseable file alone, removes the keys of the declarations in the group (or all declared keys), and writes only if something was removed. Unknown keys stay.
 - **Patterns to follow:** The set path from U3, so the lock, load and write code is shared.
 - **Test scenarios:**
   - Covers AE3. With changed settings in two groups, resetting one group returns its settings to defaults and leaves the other group's values.
