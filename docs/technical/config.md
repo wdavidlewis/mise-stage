@@ -26,3 +26,5 @@ Errors are raised at import rather than falling back to defaults:
 With `SHOW` unset, only the defaults load and a warning is logged.
 
 `PREVIS_FILE_ROOT` is the folder holding a show's previs files. It is empty by default, so a show sets its own in `config/<SHOW>.yaml`.
+
+These are show config settings, shared by a whole production. Values that belong to one artist on one machine are [user settings](user-settings.md), which are kept separately and are not affected by the show.
