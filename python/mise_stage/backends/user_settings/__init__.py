@@ -14,6 +14,8 @@ from .errors import (
     UnknownSettingError,
     UserSettingsError,
 )
+from .location import default_directory
+from .store import UserSettings
 
 __all__ = [
     "AUTO_OPEN_CAMERA_MONITOR",
@@ -25,6 +27,8 @@ __all__ = [
     "USER_SETTINGS",
     "UnknownGroupError",
     "UnknownSettingError",
+    "UserSettings",
     "UserSettingsError",
+    "default_directory",
     "validate_definitions",
 ]
